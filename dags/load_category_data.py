@@ -5,10 +5,11 @@ from airflow.utils.dates import days_ago
 from bs4 import BeautifulSoup
 
 import pendulum
-import pymysql
+
+# import pymysql
 import requests
 
-pymysql.install_as_MySQLdb()
+# pymysql.install_as_MySQLdb()
 
 kst = pendulum.timezone("Asia/Seoul")
 # 기본 설정
