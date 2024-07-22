@@ -58,8 +58,8 @@ jobs:
       - name: Get instance IPs
         id: get-instance-ips
         run: |
-          BASTION_HOST_IP=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance-outputs.bastion_host_id }} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
-          PRIVATE_AIRFLOW_IP=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance-outputs.private_airflow_id }} --query 'Reservations[0].Instances[0].PrivateIpAddres' --output text)
+          BASTION_HOST_IP=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.bastion_host_id }} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+          PRIVATE_AIRFLOW_IP=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.private_airflow_id }} --query 'Reservations[0].Instances[0].PrivateIpAddres' --output text)
           echo "Bastion Host IP: $BASTION_HOST_IP"
           echo "PRIVATE AIRFLOW IP: $PRIVATE_AIRFLOW_IP"
           echo "::set-output name=bastion_host_ip::$BASTION_HOST_IP"
