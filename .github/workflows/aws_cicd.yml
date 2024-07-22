@@ -1,0 +1,29 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ "main" ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create SSH key file
+        run: |
+          echo "${{ secrets.PRIVATE_KEY }}" > team_jun_1.pem
+          chmod 600 team_jun_1.pem
+      - name: pull to EC2          
+        run: |
+          ssh -f -N -M -S my-ctrl-socket -o StrictHostKeyChecking=no -i team_jun_1.pem -L 2222:${{ secrets.PRIVATE_AIRFLOW_IP }}:22 ubuntu@${{ vars.BASTION_HOST_IP }}
+          ssh -o StrictHostKeyChecking=no -i team_jun_1.pem -p 2222 ubuntu@localhost << 'EOF'
+            echo "Connected to Private Subnet Server via SSH Tunnel"
+            cd airflow-docker
+            git config --global credential.helper store
+            echo "https://${{ secrets.GIT_AUTH_TOKEN }}:@github.com" > ~/.git-credentials
+            git pull origin main
+            rm ~/.git-credentials
+          EOF
+
+          # Close SSH tunnel
+          ssh -S my-ctrl-socket -O exit ubuntu@${{ vars.BASTION_HOST_IP }}
