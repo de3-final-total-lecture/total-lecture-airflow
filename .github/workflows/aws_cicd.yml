@@ -5,8 +5,6 @@ on:
     branches: [ "main" ]
 
 
-
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -82,7 +80,7 @@ jobs:
             git config --global credential.helper store
             echo "https://${{ secrets.GIT_AUTH_TOKEN }}:@github.com" > ~/.git-credentials
             git pull origin main
-            rm ~?.git-credentials
+            rm ~/.git-credentials
           EOF
           ssh -S my-cicd-socket -O exit ubuntu@${{ steps.get-instance-ips.output.bastion_host_ip }}
 
