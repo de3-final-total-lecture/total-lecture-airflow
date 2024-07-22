@@ -75,7 +75,7 @@ jobs:
       - name: Git Pull on Airflow Server
         run: |
           sleep 10
-          ssh -f -N -M -S my-cicd-socket -o StrictHostKeyChecking=no -i team_jun_1.pem -L 2222:${{ steps.get-instance-ips.output.private_airflow_ip }}:22 ubuntu@${{ steps.get-instance-ips.output.bastion_host_ip}}
+          ssh -f -N -M -S my-cicd-socket -o StrictHostKeyChecking=no -i team_jun_1.pem -L 2222:${{ steps.get-instance-ips.outputs.private_airflow_ip }}:22 ubuntu@${{ steps.get-instance-ips.outputs.bastion_host_ip}}
           ssh -o StrictHostKeyChecking=no -i team_jun_1.pem -p 2222 ubuntu@localhost << 'EOF'
             echo "Connected to Private Subnet Airflow SAeerver via SSH Tunneling"
             cd ${{ vars.AIRFLOW_DIR }}
