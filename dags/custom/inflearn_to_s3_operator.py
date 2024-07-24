@@ -46,7 +46,9 @@ class InflearnToS3Operator(BaseOperator):
             parsed_data = self.process_func(id, lecture_url, keyword, sort_type)
             hashed_url = hashlib.md5(lecture_url.encode()).hexdigest()
             if self.push_prefix == "product":
-                s3_key = f"{self.push_prefix}/{today}/inflearn_{hashed_url}.json"
+                s3_key = (
+                    f"{self.push_prefix}/{today}/{sort_type}/inflearn_{hashed_url}.json"
+                )
             else:
                 s3_key = f"{self.push_prefix}/{today}/{hashed_url}.json"
             uploads.append({"content": parsed_data, "key": s3_key})
