@@ -23,13 +23,11 @@ class InflearnToS3Operator(BaseOperator):
         self.process_func = process_func
 
     def pre_execute(self, context):
-        self.s3_hook = S3Hook(
-            aws_conn_id="aws_s3_connection"  # .config.py 같은 곳에 상수로 지정
-        )
+        self.s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
 
     def execute(self, context):
         execution_date = context["execution_date"]
-        korean_time = execution_date - timedelta(hours=28)
+        korean_time = execution_date
         today = korean_time.strftime("%m-%d")
 
         uploads = []
@@ -47,7 +45,12 @@ class InflearnToS3Operator(BaseOperator):
             )
             parsed_data = self.process_func(id, lecture_url, keyword, sort_type)
             hashed_url = hashlib.md5(lecture_url.encode()).hexdigest()
-            s3_key = f"{self.push_prefix}/{today}/{hashed_url}.json"
+            if self.push_prefix == "product":
+                s3_key = (
+                    f"{self.push_prefix}/{today}/{keyword}/inflearn_{hashed_url}.json"
+                )
+            else:
+                s3_key = f"{self.push_prefix}/{today}/{hashed_url}.json"
             uploads.append({"content": parsed_data, "key": s3_key})
             time.sleep(1)
         logging.info("S3에 데이터 삽입을 시작합니다.")
@@ -59,7 +62,7 @@ class InflearnToS3Operator(BaseOperator):
     )
     def read_json_file_from_s3(self, today):
         file_content = self.s3_hook.read_key(
-            self.pull_prefix + f"/{today}" + "/lecture_id.json", self.bucket_name
+            self.pull_prefix + f"/{today}" + "/inflearn.json", self.bucket_name
         )
         return json.loads(file_content)
 
