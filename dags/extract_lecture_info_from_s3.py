@@ -79,7 +79,7 @@ def process_s3_json_files(**context):
             if data["sort_type"] == "RECOMMEND":
                 insert_data = (
                     data["lecture_id"],
-                    data["lecuture_name"],
+                    data["lecture_name"],
                     data["price"],
                     data["description"],
                     "|".join(data["what_do_i_learn"]),
@@ -96,7 +96,7 @@ def process_s3_json_files(**context):
             elif data["sort_type"] == "RECENT":
                 insert_data = (
                     data["lecture_id"],
-                    data["lecuture_name"],
+                    data["lecture_name"],
                     data["price"],
                     data["description"],
                     "|".join(data["what_do_i_learn"]),
