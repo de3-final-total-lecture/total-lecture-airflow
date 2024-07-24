@@ -61,7 +61,8 @@ with DAG(
             lecture_id VARCHAR(255) PRIMARY KEY,
             lecture_name VARCHAR(255),
             price INT,
-            description VARCHAR(1023),
+            description VARCHAR(5000),
+            whatdoilearn VARCHAR(8191),
             tag VARCHAR(255),
             level VARCHAR(255),
             teacher VARCHAR(255),
@@ -93,7 +94,8 @@ with DAG(
         CREATE TABLE IF NOT EXISTS Lecture_price_history (
             lecture_id VARCHAR(255),
             price INT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (lecture_id, created_at)
         );""",
         mysql_conn_id="mysql_conn",
     )
