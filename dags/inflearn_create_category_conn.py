@@ -39,6 +39,7 @@ def process_s3_json_files(**context):
     execution_date = context["execution_date"]
     korean_time = execution_date
     today = korean_time.strftime("%m-%d")
+    logging.info(today)
 
     mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")
     bucket_name = "team-jun-1-bucket"
