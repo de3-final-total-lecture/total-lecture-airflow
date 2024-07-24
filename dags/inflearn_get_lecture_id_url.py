@@ -47,8 +47,6 @@ def _extract_lecture_id_url(**context):
     today = korean_time.strftime("%m-%d")
     logging.info(today)
 
-    wait = WebDriverWait(driver, 10)
-
     dic = context["ti"].xcom_pull(task_ids="get_key_words")
     data = {}
 
@@ -72,6 +70,7 @@ def _extract_lecture_id_url(**context):
                 for page_number in range(1, 10):
                     url = f"https://www.inflearn.com/courses?s={keyword}&sort={sort_type}&page_number={page_number}"
                     driver.get(url)
+                    wait = WebDriverWait(driver, 10)
 
                     try:
                         wait.until(
