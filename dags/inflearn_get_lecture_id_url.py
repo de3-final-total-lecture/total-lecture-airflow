@@ -3,6 +3,9 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.dates import days_ago
 from datetime import timedelta
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 import pendulum
 
@@ -44,6 +47,8 @@ def _extract_lecture_id_url(**context):
     today = korean_time.strftime("%m-%d")
     logging.info(today)
 
+    wait = WebDriverWait(driver, 10)
+
     dic = context["ti"].xcom_pull(task_ids="get_key_words")
     data = {}
 
@@ -68,6 +73,26 @@ def _extract_lecture_id_url(**context):
                     url = f"https://www.inflearn.com/courses?s={keyword}&sort={sort_type}&page_number={page_number}"
                     driver.get(url)
 
+                    try:
+                        wait.until(
+                            EC.presence_of_element_located(
+                                (By.CSS_SELECTOR, "div.mantine-ia4qn")
+                            )
+                        )
+                    except:
+                        logging.info(f"{keyword}로 검색한 강의가 존재합니다.")
+
+                    try:
+                        wait.until(
+                            EC.presence_of_element_located(
+                                (By.CSS_SELECTOR, "ul.css-y21pja.mantine-1avyp1d")
+                            )
+                        )
+                    except:
+                        logging.info(
+                            "강의가 존재하지만 강의 목록을 불러오지 못했습니다."
+                        )
+
                     time.sleep(0.5)
                     soup = BeautifulSoup(driver.page_source, "html.parser")
 
@@ -82,6 +107,7 @@ def _extract_lecture_id_url(**context):
                     lectures = soup.find_all(
                         "ul", {"class": "css-y21pja mantine-1avyp1d"}
                     )
+
                     up_lectures = lectures[0].find_all(
                         "li", {"class": "css-8atqhb mantine-1avyp1d"}
                     )
