@@ -9,9 +9,6 @@ from datetime import timedelta
 import json
 import logging
 import pendulum
-import pymysql
-
-pymysql.install_as_MySQLdb()
 
 kst = pendulum.timezone("Asia/Seoul")
 # 기본 설정
