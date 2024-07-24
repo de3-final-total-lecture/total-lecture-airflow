@@ -133,7 +133,7 @@ def parsing_course_id(url):
 
 kst = pendulum.timezone("Asia/Seoul")
 default_args = {
-    "owner": "airflow",
+    "owner": "zjacom",
     "start_date": kst.convert(days_ago(1)),
     "retries": 3,
 }
