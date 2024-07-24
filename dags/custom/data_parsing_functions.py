@@ -73,7 +73,7 @@ def parsing_lecture_details(id, lecture_url, keyword, sort_type):
             "lecture_name": lecture_name,
             "price": int(price),
             "description": description,
-            "whatdoilearn": what_do_i_learn,
+            "what_do_i_learn": what_do_i_learn,
             "tag": tags,
             "level": level,
             "teacher": teacher,
