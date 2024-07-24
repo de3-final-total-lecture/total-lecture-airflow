@@ -26,7 +26,7 @@ with DAG(
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         );""",
-        mysql_conn_id="rds_conn",
+        mysql_conn_id="mysql_conn",
     )
 
     create_wish_list_table = MySqlOperator(
@@ -37,7 +37,7 @@ with DAG(
             lecture_name VARCHAR(255),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );""",
-        mysql_conn_id="rds_conn",
+        mysql_conn_id="mysql_conn",
     )
 
     create_category_table = MySqlOperator(
@@ -50,7 +50,7 @@ with DAG(
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         );""",
-        mysql_conn_id="rds_conn",
+        mysql_conn_id="mysql_conn",
     )
 
     ################################################
@@ -74,7 +74,7 @@ with DAG(
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         );""",
-        mysql_conn_id="rds_conn",
+        mysql_conn_id="mysql_conn",
     )
 
     create_category_conn_table = MySqlOperator(
@@ -84,7 +84,7 @@ with DAG(
             lecture_id VARCHAR(255),
             category_id INT
         );""",
-        mysql_conn_id="rds_conn",
+        mysql_conn_id="mysql_conn",
     )
 
     create_lecture_price_history_table = MySqlOperator(
@@ -95,7 +95,7 @@ with DAG(
             price INT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );""",
-        mysql_conn_id="rds_conn",
+        mysql_conn_id="mysql_conn",
     )
 
     create_review_analysis_table = MySqlOperator(
@@ -108,6 +108,5 @@ with DAG(
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         );""",
-        # mysql_conn_id="mysql_conn",
-        mysql_conn_id="rds_conn",
+        mysql_conn_id="mysql_conn",
     )
