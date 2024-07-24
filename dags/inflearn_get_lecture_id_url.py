@@ -3,21 +3,13 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.dates import days_ago
 from datetime import timedelta
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 import pendulum
-
-from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 
 import time
 import requests
 import logging
 import json
-import re
 
 
 def upload_json_to_s3(data, bucket_name, key):
@@ -50,110 +42,36 @@ def _extract_lecture_id_url(**context):
     dic = context["ti"].xcom_pull(task_ids="get_key_words")
     data = {}
 
-    chrome_options = Options()
-    chrome_options.add_argument("--ignore-ssl-errors=yes")
-    chrome_options.add_argument("--ignore-certificate-errors")
-
-    user_agent = "userMozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36"
-    chrome_options.add_argument(f"user-agent={user_agent}")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--headless")
-
-    remote_webdriver = "remote_chromedriver"
-    with webdriver.Remote(
-        f"{remote_webdriver}:4444/wd/hub", options=chrome_options
-    ) as driver:
-        for keyword in dic["keywords"]:
-            for sort_type in ["RECENT", "RECOMMEND"]:
-                count = 0
-                for page_number in range(1, 10):
-                    url = f"https://www.inflearn.com/courses?s={keyword}&sort={sort_type}&page_number={page_number}"
-                    driver.get(url)
-                    wait = WebDriverWait(driver, 2)
-
-                    try:
-                        wait.until(
-                            EC.presence_of_element_located(
-                                (By.CSS_SELECTOR, "div.mantine-ia4qn")
-                            )
-                        )
-                    except:
-                        logging.info(f"{keyword}로 검색한 강의가 존재합니다.")
-
-                    try:
-                        wait.until(
-                            EC.presence_of_element_located(
-                                (By.CSS_SELECTOR, "ul.css-y21pja.mantine-1avyp1d")
-                            )
-                        )
-                    except:
-                        logging.info(
-                            "강의가 존재하지만 강의 목록을 불러오지 못했습니다."
-                        )
-
-                    time.sleep(0.5)
-                    soup = BeautifulSoup(driver.page_source, "html.parser")
-
-                    is_exist = soup.find("div", {"class": "mantine-ia4qn"})
-
-                    if is_exist and is_exist.text == "찾는 조건의 강의가 없어요.":
-                        logging.info(
-                            f"{keyword}로 찾을 수 있는 강의가 더 이상 없습니다."
-                        )
-                        break
-
-                    lectures = soup.find_all(
-                        "ul", {"class": "css-y21pja mantine-1avyp1d"}
-                    )
-
-                    up_lectures = lectures[0].find_all(
-                        "li", {"class": "css-8atqhb mantine-1avyp1d"}
-                    )
-                    count, data = parsing_lecture_id_url(
-                        keyword, count, up_lectures, sort_type, data
-                    )
-                    if len(lectures) > 1:
-                        down_lectures = lectures[1].find_all(
-                            "li", {"class": "mantine-1avyp1d"}
-                        )
-                        count, data = parsing_lecture_id_url(
-                            keyword, count, down_lectures, sort_type, data
-                        )
-
+    for keyword in dic["keywords"]:
+        for sort_type, count in [("RECOMMEND", 100), ("RECENT", 20)]:
+            url = f"https://www.inflearn.com/courses/client/api/v1/course/search?isDiscounted=false&isNew=false&keyword={keyword}&pageNumber=1&pageSize={count}&sort={sort_type}&types=ONLINE"
+            data = parsing_lecture_id_url(url, sort_type, keyword, data)
+            time.sleep(0.5)
     s3_key = f"raw_data/URL/{today}/inflearn_id.json"
     upload_json_to_s3(data, "team-jun-1-bucket", s3_key)
 
 
-def parsing_lecture_id_url(keyword, count, lectures, sort_type, data):
+def parsing_lecture_id_url(url, sort_type, keyword, data):
+    response = requests.get(url)
+    response.raise_for_status()
+    response_data = response.json()
+
+    response_data = response_data["data"]
+    if response_data["totalCount"] == 0:
+        return data
+
+    lectures = response_data["items"]
     for lecture in lectures:
-        count += 1
-        if sort_type == "RECOMMEND" and count > 100:
-            break
-        if sort_type == "RECENT" and count > 20:
-            break
-        a_tag = lecture.find("a")
-        lecture_url = a_tag["href"]
-        img_tag = lecture.find("img")
-        img_url = img_tag[
-            "src"
-        ]  # https://cdn.inflearn.com/public/courses/334124/cover/5e92d36e-6175-4999-b75f-6f2fa024dcc6/334124.jpg?w=420
-        lecture_id = parsing_course_id(img_url)
-        if lecture_id:
-            data[lecture_id] = {
-                "keyword": keyword,
-                "sort_type": sort_type,
-                "lecture_url": lecture_url,
-            }
-
-    return count, data
-
-
-def parsing_course_id(url):
-    match = re.search(r"courses/(\d{6})/", url)
-    if match:
-        return match.group(1)
-    return None
+        lecture = lecture["course"]
+        lecture_id = lecture["id"]
+        slug = lecture["slug"]
+        lecture_url = f"https://www.inflearn.com/course/{slug}"
+        data[lecture_id] = {
+            "keyword": keyword,
+            "sort_type": sort_type,
+            "lecture_url": lecture_url,
+        }
+    return data
 
 
 kst = pendulum.timezone("Asia/Seoul")
