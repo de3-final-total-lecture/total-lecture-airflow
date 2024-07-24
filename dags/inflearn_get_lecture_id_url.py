@@ -44,6 +44,7 @@ def _extract_lecture_id_url(**context):
 
     for keyword in dic["keywords"]:
         for sort_type, count in [("RECOMMEND", 100), ("RECENT", 20)]:
+            logging.info(f"{keyword}으로 검색한 결과를 {sort_type}순으로 가져옵니다.")
             url = f"https://www.inflearn.com/courses/client/api/v1/course/search?isDiscounted=false&isNew=false&keyword={keyword}&pageNumber=1&pageSize={count}&sort={sort_type}&types=ONLINE"
             data = parsing_lecture_id_url(url, sort_type, keyword, data)
             time.sleep(0.5)

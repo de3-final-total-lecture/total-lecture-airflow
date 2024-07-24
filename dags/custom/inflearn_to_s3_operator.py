@@ -62,7 +62,7 @@ class InflearnToS3Operator(BaseOperator):
     )
     def read_json_file_from_s3(self, today):
         file_content = self.s3_hook.read_key(
-            self.pull_prefix + f"/{today}" + "/inflearn.json", self.bucket_name
+            self.pull_prefix + f"/{today}" + "/inflearn_id.json", self.bucket_name
         )
         return json.loads(file_content)
 
