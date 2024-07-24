@@ -9,11 +9,14 @@ from datetime import timedelta
 import json
 import logging
 import pendulum
+import pymysql
+
+pymysql.install_as_MySQLdb()
 
 kst = pendulum.timezone("Asia/Seoul")
 # 기본 설정
 default_args = {
-    "owner": "zjacom",
+    "owner": "airflow",
     "depends_on_past": False,
     "start_date": kst.convert(days_ago(1)),
 }
@@ -22,14 +25,15 @@ default_args = {
 def get_all_json_files_from_s3(bucket_name, prefix=""):
     s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
     keys = s3_hook.list_keys(bucket_name, prefix=prefix)
-    json_files = [
-        key for key in keys if key.startswith("inflearn") and key.endswith(".json")
-    ]
+    json_files = [key for key in keys if key.endswith(".json")]
     return json_files
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def read_json_file_from_s3(bucket_name, key):
+    if not key.startswith("inflearn"):
+        return None
+
     s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
     content = s3_hook.read_key(key, bucket_name)
     return json.loads(content)
@@ -51,6 +55,8 @@ def process_s3_json_files(**context):
     # 각 JSON 파일 읽기 및 처리
     for json_file in json_files:
         json_content = read_json_file_from_s3(bucket_name, json_file)
+        if json_content is None:
+            continue
         # 여기에서 json_content를 처리하는 로직 추가
         data = json_content["content"]
         lecture_id = data["lecture_id"]
