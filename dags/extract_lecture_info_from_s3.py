@@ -69,7 +69,6 @@ def process_s3_json_files(**context):
         data = json_content["content"]
         lecture_id = data["lecture_id"]
         is_new, is_recommend = execute_select_query(lecture_id)
-        logging.info(is_new, is_recommend)
 
         if is_new is None and is_recommend is None:
             insert_query = """
