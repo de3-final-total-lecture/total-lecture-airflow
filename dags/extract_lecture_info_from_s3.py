@@ -73,8 +73,8 @@ def process_s3_json_files(**context):
 
         if is_new is None and is_recommend is None:
             insert_query = """
-                INSERT INTO Lecture_info (lecture_id, lecture_name, price, description, tag, level, teacher, scope, review_count, lecture_time, thumbnail_url, is_new, is_recommend)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO Lecture_info (lecture_id, lecture_name, price, description, what_do_i_learn, tag, level, teacher, scope, review_count, lecture_time, thumbnail_url, is_new, is_recommend)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             if data["sort_type"] == "RECOMMEND":
                 insert_data = (
@@ -82,6 +82,7 @@ def process_s3_json_files(**context):
                     data["lecuture_name"],
                     data["price"],
                     data["description"],
+                    "|".join(data["what_do_i_learn"]),
                     "|".join(data["tag"]),
                     data["level"],
                     data["teacher"],
@@ -98,6 +99,7 @@ def process_s3_json_files(**context):
                     data["lecuture_name"],
                     data["price"],
                     data["description"],
+                    "|".join(data["what_do_i_learn"]),
                     "|".join(data["tag"]),
                     data["level"],
                     data["teacher"],
