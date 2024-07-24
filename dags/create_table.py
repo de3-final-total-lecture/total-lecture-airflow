@@ -62,7 +62,7 @@ with DAG(
             lecture_name VARCHAR(255),
             price INT,
             description VARCHAR(5000),
-            whatdoilearn VARCHAR(8191),
+            what_do_i_learn VARCHAR(8191),
             tag VARCHAR(255),
             level VARCHAR(255),
             teacher VARCHAR(255),
