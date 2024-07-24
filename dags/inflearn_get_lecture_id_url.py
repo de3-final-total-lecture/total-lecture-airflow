@@ -70,7 +70,7 @@ def _extract_lecture_id_url(**context):
                 for page_number in range(1, 10):
                     url = f"https://www.inflearn.com/courses?s={keyword}&sort={sort_type}&page_number={page_number}"
                     driver.get(url)
-                    wait = WebDriverWait(driver, 10)
+                    wait = WebDriverWait(driver, 2)
 
                     try:
                         wait.until(
