@@ -4,10 +4,6 @@ from airflow.utils.dates import days_ago
 
 import pendulum
 
-import pymysql
-
-pymysql.install_as_MySQLdb()
-
 kst = pendulum.timezone("Asia/Seoul")
 default_args = {
     "owner": "zjacom",
