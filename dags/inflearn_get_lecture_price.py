@@ -10,10 +10,7 @@ import time
 import requests
 import logging
 import json
-import pymysql
 import re
-
-pymysql.install_as_MySQLdb()
 
 
 def get_lecture_id_from_thumbnail_url(url):
