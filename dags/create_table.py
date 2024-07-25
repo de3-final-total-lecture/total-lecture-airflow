@@ -49,7 +49,7 @@ with DAG(
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         );""",
-        mysql_conn_id="rds_conn",
+        mysql_conn_id="mysql_conn",
     )
 
     ################################################
