@@ -36,6 +36,7 @@ def _extract_lecture_id_url():
             response_data = response.json()
         except:
             logging.info(url)
+        logging.info(url)
         response_data = response_data["data"]
         price = response_data["paymentInfo"]["payPrice"]
         lecture_id = row[1]
