@@ -36,7 +36,7 @@ def _get_key_words_from_s3():
 
 def _extract_lecture_id_url(**context):
     execution_date = context["execution_date"]
-    korean_time = execution_date
+    korean_time = execution_date + timedelta(hours=9)
     today = korean_time.strftime("%m-%d")
     logging.info(today)
 
