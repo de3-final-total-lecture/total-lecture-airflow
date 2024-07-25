@@ -1,93 +1,86 @@
 from airflow import DAG
+from airflow.hooks.mysql_hook import MySqlHook
 from airflow.operators.python_operator import PythonOperator
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.providers.mysql.hooks.mysql import MySqlHook
 from airflow.utils.dates import days_ago
-from tenacity import retry, stop_after_attempt, wait_exponential
-from datetime import timedelta
+from bs4 import BeautifulSoup
 
-import json
-import logging
 import pendulum
+import requests
+
 
 kst = pendulum.timezone("Asia/Seoul")
 # 기본 설정
 default_args = {
-    "owner": "airflow",
+    "owner": "zjacom",
     "depends_on_past": False,
     "start_date": kst.convert(days_ago(1)),
 }
 
 
-def get_all_json_files_from_s3(bucket_name, prefix=""):
-    s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
-    keys = s3_hook.list_keys(bucket_name, prefix=prefix)
-    json_files = [key for key in keys if key.endswith(".json")]
-    return json_files
+def _load_category_data():
+    hook = MySqlHook(mysql_conn_id="mysql_conn", charset="utf8mb4")
+    res = requests.get("https://www.inflearn.com/").text
 
-
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-def read_json_file_from_s3(bucket_name, key):
-    if "inflearn" not in key:
-        return None
-
-    s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
-    content = s3_hook.read_key(key, bucket_name)
-    return json.loads(content)
-
-
-def process_s3_json_files(**context):
-    execution_date = context["execution_date"]
-    korean_time = execution_date
-    today = korean_time.strftime("%m-%d")
-
-    mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")
-    bucket_name = "team-jun-1-bucket"
-    prefix = f"product/{today}"
-
-    # 모든 JSON 파일 목록 가져오기
-    json_files = get_all_json_files_from_s3(bucket_name, prefix)
-
-    # 각 JSON 파일 읽기 및 처리
-    for json_file in json_files:
-        json_content = read_json_file_from_s3(bucket_name, json_file)
-        if json_content is None:
-            continue
-        # 여기에서 json_content를 처리하는 로직 추가
-        data = json_content["content"]
-        lecture_id = data["lecture_id"]
-        main_category, mid_category = (
-            json_content["main_category"],
-            json_content["mid_category"],
+    soup = BeautifulSoup(res, "html.parser")
+    categorys = {}
+    for elem in soup.find("ul", attrs={"class": "navbar-dropdown is-boxed"}).find_all(
+        "li"
+    ):
+        is_big_cate = (
+            len(
+                elem.find_all(
+                    "ul", attrs={"class": "navbar-dropdown is-boxed step_menu step_2"}
+                )
+            )
+            > 0
         )
-        tags = data["tag"]  # 리스트
-
-        get_categories_query = "SELECT category_id, sub_category_name FROM Category WHERE main_category_name = %s and mid_category_name = %s;"
-        # 쿼리 실행 및 결과 가져오기
-        result = mysql_hook.get_records(
-            get_categories_query, parameters=(main_category, mid_category)
-        )
-
-        for category_id, sub_category in result:
-            for tag in tags:
-                if sub_category == tag:
-                    insert_category_conn_query = "INSERT INTO Category_conn (lecture_id, category_id) VALUES (%s, %s)"
-                    mysql_hook.run(
-                        insert_category_conn_query, parameters=(lecture_id, category_id)
+        if is_big_cate:
+            category_str = elem.text.strip().split("\n\n\n")
+            categorys[category_str[0]] = {}
+            key_temp = None
+            for elem in category_str[1:]:
+                if "\n " in elem:
+                    categorys[category_str[0]][key_temp] = list(
+                        map(lambda x: x.strip(), elem.split("\n "))
                     )
+                else:
+                    key_temp = elem.strip()
+                    categorys[category_str[0]][key_temp] = []
+
+    exclude_main = [
+        "디자인 · 아트",
+        "비즈니스 · 마케팅",
+        "공학 · 수학 · 외국어",
+        "커리어",
+    ]
+    include_hardware = ["임베디드 · IoT"]
+    for main in categorys:
+        if main in exclude_main:
+            continue
+        for mid in categorys[main]:
+            if main == "게임 개발" and mid != "게임 프로그래밍":
+                continue
+            if main == "하드웨어":
+                if mid not in include_hardware:
+                    continue
+            if "기타" in mid or "자격증" in mid:
+                continue
+            sql = "INSERT INTO Category (main_category_name, mid_category_name) VALUES (%s, %s)"
+            hook.run(sql, parameters=(main, mid))
 
 
+# 하드웨어 - 컴퓨터 구조, 임베디드
 with DAG(
-    "inflearn_create_category_conn",
+    "load_category_data",
     default_args=default_args,
-    description="DAG to insert inflearn category conn data",
+    description="DAG to load inflearn category in Category table.",
     schedule_interval=None,
 ) as dag:
 
-    process_files = PythonOperator(
-        task_id="process_s3_json_files",
-        python_callable=process_s3_json_files,
+    load_category_data = PythonOperator(
+        task_id="load_category_data",
+        python_callable=_load_category_data,
         provide_context=True,
     )
 
-    process_files
+    load_category_data
