@@ -111,3 +111,14 @@ with DAG(
         );""",
         mysql_conn_id="mysql_conn",
     )
+
+    create_inflearn_id_table = MySqlOperator(
+        task_id="create_inflearn_id_table",
+        sql="""
+        CREATE TABLE IF NOT EXISTS Inflearn_id (
+            lecture_id VARCHAR(255) PRIMARY KEY,
+            inflearn_id int,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        );""",
+        mysql_conn_id="mysql_conn",
+    )
