@@ -28,7 +28,7 @@ def get_all_json_files_from_s3(bucket_name, prefix=""):
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def read_json_file_from_s3(bucket_name, key):
-    if not key.startswith("inflearn"):
+    if "inflearn" not in key:
         return None
 
     s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
@@ -40,7 +40,6 @@ def process_s3_json_files(**context):
     execution_date = context["execution_date"]
     korean_time = execution_date
     today = korean_time.strftime("%m-%d")
-    logging.info(today)
 
     mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")
     bucket_name = "team-jun-1-bucket"
