@@ -2,6 +2,7 @@ import requests
 import hashlib
 import json
 import logging
+from .hashing_functions import encoding_url
 
 
 def convert_unix_timestamp_to_hours_minutes(timestamp):
@@ -69,7 +70,7 @@ def parsing_lecture_details(id, lecture_url, keyword, sort_type):
         "url": lecture_url,
         "keyword": keyword,
         "content": {
-            "lecture_id": hashlib.md5(lecture_url.encode()).hexdigest(),
+            "lecture_id": encoding_url(lecture_url),
             "lecture_name": lecture_name,
             "price": int(price),
             "description": description,
@@ -94,7 +95,7 @@ def parsing_lecture_reviews(id, lecture_url, *args):
     url = f"https://www.inflearn.com/api/v2/review/course/{id}?id={id}&pageNumber=1&pageSize=30&sort=RECENT"
 
     data = {
-        "lecture_id": hashlib.md5(lecture_url.encode()).hexdigest(),
+        "lecture_id": encoding_url(lecture_url),
         "lecture_url": lecture_url,
         "reviews": [],
     }

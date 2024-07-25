@@ -13,24 +13,15 @@ import json
 import re
 
 
-def get_lecture_id_from_thumbnail_url(url):
-    # courses/ID || course-ID
-    match = re.search(r"courses/(\d+)|course-(\d+)", url)
-    if match:
-        return match.group(1) if match.group(1) else match.group(2)
-
-
 def _extract_lecture_id_url():
     mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")
 
-    get_inflearn_thumbnail_url_query = "SELECT thumbnail_url, lecture_id FROM Lecture_info WHERE thumbnail_url LIKE '%inflearn%';"
+    get_inflearn_thumbnail_url_query = "SELECT lecture_id, inflearn_id FROM Inflearn_id WHERE thumbnail_url LIKE '%inflearn%';"
 
     results = mysql_hook.get_records(get_inflearn_thumbnail_url_query)
 
     for row in results:
-        inflearn_id = get_lecture_id_from_thumbnail_url(row[0])
-        if inflearn_id is None:
-            logging.info(row[0])
+        inflearn_id = row[1]
         url = f"https://www.inflearn.com/course/client/api/v1/course/{inflearn_id}/online/info"
         response = requests.get(url)
         response.raise_for_status()
@@ -40,7 +31,7 @@ def _extract_lecture_id_url():
             logging.info(url)
         response_data = response_data["data"]
         price = response_data["paymentInfo"]["payPrice"]
-        lecture_id = row[1]
+        lecture_id = row[0]
 
         insert_lecture_price_history_query = (
             "INSERT INTO Lecture_price_history (lecture_id, price) VALUES (%s, %s)"
