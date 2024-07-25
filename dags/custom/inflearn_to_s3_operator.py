@@ -8,6 +8,7 @@ import concurrent.futures
 import logging
 from datetime import timedelta
 import time
+from .hashing_functions import encoding_url
 
 
 class InflearnToS3Operator(BaseOperator):
@@ -44,7 +45,7 @@ class InflearnToS3Operator(BaseOperator):
                 value["lecture_url"],
             )
             parsed_data = self.process_func(id, lecture_url, keyword, sort_type)
-            hashed_url = hashlib.md5(lecture_url.encode()).hexdigest()
+            hashed_url = encoding_url(lecture_url)
             if self.push_prefix == "product":
                 s3_key = (
                     f"{self.push_prefix}/{today}/{sort_type}/inflearn_{hashed_url}.json"

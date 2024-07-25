@@ -3,6 +3,7 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.dates import days_ago
 from datetime import timedelta
+from airflow.providers.mysql.hooks.mysql import MySqlHook
 
 import pendulum
 
@@ -53,6 +54,7 @@ def _extract_lecture_id_url(**context):
 
 
 def parsing_lecture_id_url(url, sort_type, keyword, data):
+    mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")
     response = requests.get(url)
     response.raise_for_status()
     response_data = response.json()
@@ -72,6 +74,10 @@ def parsing_lecture_id_url(url, sort_type, keyword, data):
             "sort_type": sort_type,
             "lecture_url": lecture_url,
         }
+        insert_inflearn_id_query = (
+            "INSERT IGNORE INTO Inflearn_id (lecture_id, inflearn_id) VALUES (%s, %s)"
+        )
+        mysql_hook.run(insert_inflearn_id_query, parameters=(lecture_id, lecture_url))
     return data
 
 
