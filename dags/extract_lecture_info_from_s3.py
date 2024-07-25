@@ -52,7 +52,7 @@ def execute_select_query(lecture_id):
 
 def process_s3_json_files(**context):
     execution_date = context["execution_date"]
-    korean_time = execution_date
+    korean_time = execution_date + timedelta(hours=9)
     today = korean_time.strftime("%m-%d")
 
     mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")

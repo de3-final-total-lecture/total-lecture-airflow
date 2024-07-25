@@ -28,7 +28,7 @@ class InflearnToS3Operator(BaseOperator):
 
     def execute(self, context):
         execution_date = context["execution_date"]
-        korean_time = execution_date
+        korean_time = execution_date + timedelta(hours=9)
         today = korean_time.strftime("%m-%d")
 
         uploads = []
