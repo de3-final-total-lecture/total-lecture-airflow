@@ -14,10 +14,10 @@ import re
 
 
 def get_lecture_id_from_thumbnail_url(url):
-    match = re.search(r"courses/(\d+)", url)
+    # courses/ID || course-ID
+    match = re.search(r"courses/(\d+)|course-(\d+)", url)
     if match:
-        course_id = match.group(1)
-        return course_id
+        return match.group(1) if match.group(1) else match.group(2)
 
 
 def _extract_lecture_id_url():
