@@ -4,6 +4,7 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.dates import days_ago
 from datetime import timedelta
 from airflow.providers.mysql.hooks.mysql import MySqlHook
+from custom.hashing_functions import encoding_url
 
 import pendulum
 
@@ -69,6 +70,7 @@ def parsing_lecture_id_url(url, sort_type, keyword, data):
         lecture_id = lecture["id"]
         slug = lecture["slug"]
         lecture_url = f"https://www.inflearn.com/course/{slug}"
+        encoded_url = encoding_url(lecture_url)
         data[lecture_id] = {
             "keyword": keyword,
             "sort_type": sort_type,
@@ -77,7 +79,7 @@ def parsing_lecture_id_url(url, sort_type, keyword, data):
         insert_inflearn_id_query = (
             "INSERT IGNORE INTO Inflearn_id (lecture_id, inflearn_id) VALUES (%s, %s)"
         )
-        mysql_hook.run(insert_inflearn_id_query, parameters=(lecture_id, lecture_url))
+        mysql_hook.run(insert_inflearn_id_query, parameters=(encoded_url, lecture_id))
     return data
 
 
