@@ -46,6 +46,7 @@ def _extract_lecture_id_url():
         mysql_hook.run(
             insert_lecture_price_history_query, parameters=(lecture_id, price)
         )
+        time.sleep(0.5)
 
 
 kst = pendulum.timezone("Asia/Seoul")
