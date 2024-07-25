@@ -16,12 +16,17 @@ import re
 def _extract_lecture_id_url():
     mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")
 
-    get_inflearn_thumbnail_url_query = "SELECT lecture_id, inflearn_id FROM Inflearn_id WHERE thumbnail_url LIKE '%inflearn%';"
+    get_lecture_id_query = (
+        "SELECT lecture_id FROM Lecture_info WHERE thumbnail_url LIKE '%inflearn%';"
+    )
 
-    results = mysql_hook.get_records(get_inflearn_thumbnail_url_query)
+    results = mysql_hook.get_records(get_lecture_id_query)
 
     for row in results:
-        inflearn_id = row[1]
+        get_inflearn_id_query = (
+            f"SELECT inflearn_id FROM Inflearn_id WHERE lecture_id = {row[0]}"
+        )
+        inflearn_id = mysql_hook.get_first(get_inflearn_id_query)[0]
         url = f"https://www.inflearn.com/course/client/api/v1/course/{inflearn_id}/online/info"
         response = requests.get(url)
         response.raise_for_status()
