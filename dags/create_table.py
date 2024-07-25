@@ -46,11 +46,10 @@ with DAG(
             category_id INT AUTO_INCREMENT PRIMARY KEY,
             main_category_name VARCHAR(255),
             mid_category_name VARCHAR(255),
-            sub_category_name VARCHAR(255),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         );""",
-        mysql_conn_id="mysql_conn",
+        mysql_conn_id="rds_conn",
     )
 
     ################################################
