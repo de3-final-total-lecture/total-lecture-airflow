@@ -29,6 +29,8 @@ def _extract_lecture_id_url():
 
     for row in results:
         inflearn_id = get_lecture_id_from_thumbnail_url(row[0])
+        if inflearn_id is None:
+            logging.info(row[0])
         url = f"https://www.inflearn.com/course/client/api/v1/course/{inflearn_id}/online/info"
         response = requests.get(url)
         response.raise_for_status()
@@ -36,7 +38,6 @@ def _extract_lecture_id_url():
             response_data = response.json()
         except:
             logging.info(url)
-        logging.info(url)
         response_data = response_data["data"]
         price = response_data["paymentInfo"]["payPrice"]
         lecture_id = row[1]
