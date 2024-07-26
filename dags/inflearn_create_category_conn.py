@@ -53,7 +53,9 @@ def process_s3_json_files(**context):
     get_etc_category_id_query = (
         "SELECT category_id FROM Category WHERE main_category_name = %s"
     )
-    etc_category_id = mysql_hook.run(get_etc_category_id_query, parameters=("기타",))
+    etc_category_id = mysql_hook.get_first(
+        get_etc_category_id_query, parameters=("기타",)
+    )[0]
 
     # 각 JSON 파일 읽기 및 처리
     for json_file in json_files:
@@ -82,6 +84,7 @@ def process_s3_json_files(**context):
                 insert_category_conn_query, parameters=(lecture_id, etc_category_id)
             )
         else:
+            category_id = category_id[0]
             mysql_hook.run(
                 insert_category_conn_query, parameters=(lecture_id, category_id)
             )
