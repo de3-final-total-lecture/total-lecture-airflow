@@ -24,9 +24,9 @@ def _extract_lecture_id_url():
 
     for row in results:
         get_inflearn_id_query = (
-            f"SELECT inflearn_id FROM Inflearn_id WHERE lecture_id = {row[0]}"
+            "SELECT inflearn_id FROM Inflearn_id WHERE lecture_id = %s"
         )
-        inflearn_id = mysql_hook.get_first(get_inflearn_id_query)[0]
+        inflearn_id = mysql_hook.get_first(get_inflearn_id_query, (row[0],))[0]
         url = f"https://www.inflearn.com/course/client/api/v1/course/{inflearn_id}/online/info"
         response = requests.get(url)
         response.raise_for_status()
