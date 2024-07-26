@@ -68,6 +68,11 @@ def _load_category_data():
             sql = "INSERT INTO Category (main_category_name, mid_category_name) VALUES (%s, %s)"
             hook.run(sql, parameters=(main, mid))
 
+    insert_etc_category_query = (
+        "INSERT INTO Category (main_category_name, mid_category_name) VALUES (%s, %s)"
+    )
+    hook.run(insert_etc_category_query, parameters=("기타", "기타"))
+
 
 # 하드웨어 - 컴퓨터 구조, 임베디드
 with DAG(

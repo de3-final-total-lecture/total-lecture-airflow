@@ -50,6 +50,11 @@ def process_s3_json_files(**context):
     json_files = get_all_json_files_from_s3(bucket_name, prefix)
     logging.info(json_files)
 
+    get_etc_category_id_query = (
+        "SELECT category_id FROM Category WHERE main_category_name = %s"
+    )
+    etc_category_id = mysql_hook.run(get_etc_category_id_query, parameters=("기타",))
+
     # 각 JSON 파일 읽기 및 처리
     for json_file in json_files:
         json_content = read_json_file_from_s3(bucket_name, json_file)
@@ -68,12 +73,18 @@ def process_s3_json_files(**context):
         # 쿼리 실행 및 결과 가져오기
         category_id = mysql_hook.get_first(
             get_categories_query, parameters=(main_category, mid_category)
-        )[0]
-
+        )
         insert_category_conn_query = (
             "INSERT INTO Category_conn (lecture_id, category_id) VALUES (%s, %s)"
         )
-        mysql_hook.run(insert_category_conn_query, parameters=(lecture_id, category_id))
+        if category_id is None:
+            mysql_hook.run(
+                insert_category_conn_query, parameters=(lecture_id, etc_category_id)
+            )
+        else:
+            mysql_hook.run(
+                insert_category_conn_query, parameters=(lecture_id, category_id)
+            )
 
 
 with DAG(
