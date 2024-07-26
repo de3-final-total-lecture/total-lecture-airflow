@@ -56,28 +56,24 @@ def process_s3_json_files(**context):
         if json_content is None:
             continue
         # 여기에서 json_content를 처리하는 로직 추가
-        logging.info("h")
+
         data = json_content["content"]
         lecture_id = data["lecture_id"]
         main_category, mid_category = (
             json_content["main_category"],
             json_content["mid_category"],
         )
-        tags = data["tag"]  # 리스트
 
-        get_categories_query = "SELECT category_id, sub_category_name FROM Category WHERE main_category_name = %s and mid_category_name = %s;"
+        get_categories_query = "SELECT category_id FROM Category WHERE main_category_name = %s and mid_category_name = %s;"
         # 쿼리 실행 및 결과 가져오기
-        result = mysql_hook.get_records(
+        category_id = mysql_hook.get_first(
             get_categories_query, parameters=(main_category, mid_category)
-        )
+        )[0]
 
-        for category_id, sub_category in result:
-            for tag in tags:
-                if sub_category == tag:
-                    insert_category_conn_query = "INSERT INTO Category_conn (lecture_id, category_id) VALUES (%s, %s)"
-                    mysql_hook.run(
-                        insert_category_conn_query, parameters=(lecture_id, category_id)
-                    )
+        insert_category_conn_query = (
+            "INSERT INTO Category_conn (lecture_id, category_id) VALUES (%s, %s)"
+        )
+        mysql_hook.run(insert_category_conn_query, parameters=(lecture_id, category_id))
 
 
 with DAG(
