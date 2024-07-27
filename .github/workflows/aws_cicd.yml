@@ -4,7 +4,6 @@ on:
   push:
     branches: [ "main" ]
 
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -24,8 +23,10 @@ jobs:
           PRIVATE_AIRFLOW_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.AIRFLOW_NAME_TAG }}" --query 'Reservations[0].Instances[0].InstanceId' --output text)
           echo "Bastion Host ID: $BASTION_HOST_ID"
           echo "PRIVATE AIRFLOW ID: $PRIVATE_AIRFLOW_ID"
-          echo "::set-output name=bastion_host_id::$BASTION_HOST_ID"
-          echo "::set-output name=private_airflow_id::$PRIVATE_AIRFLOW_ID"
+          # echo "::set-output name=bastion_host_id::$BASTION_HOST_ID"
+          # echo "::set-output name=private_airflow_id::$PRIVATE_AIRFLOW_ID"
+          echo "bastion_host_id=$BASTION_HOST_ID" >> $GITHUB_OUTPUT
+          echo "private_airflow_id=$PRIVATE_AIRFLOW_ID" >> $GITHUB_OUTPUT
 
 
       - name: Check instance status
@@ -35,8 +36,10 @@ jobs:
           PRIVATE_AIRFLOW_STATUS=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.private_airflow_id }} --query 'Reservations[0].Instances[0].State.Name' --output text)
           echo "Bastion Host STATUS: $BASTION_HOST_STATUS"
           echo "PRIVATE AIRFLOW STATUS: $PRIVATE_AIRFLOW_STATUS"
-          echo "::set-output name=bastion_host_status::$BASTION_HOST_STATUS"
-          echo "::set-output name=private_airflow_status::$PRIVATE_AIRFLOW_STATUS"
+          # echo "::set-output name=bastion_host_status::$BASTION_HOST_STATUS"
+          # echo "::set-output name=private_airflow_status::$PRIVATE_AIRFLOW_STATUS"
+          echo "bastion_host_status=$BASTION_HOST_STATUS" >> $GITHUB_OUTPUT
+          echo "private_airflow_status=$PRIVATE_AIRFLOW_STATUS" >> $GITHUB_OUTPUT
 
   
       - name: Start Bastion Host if stopped
@@ -60,8 +63,10 @@ jobs:
           PRIVATE_AIRFLOW_IP=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.private_airflow_id }} --query 'Reservations[0].Instances[0].PrivateIpAddress' --output text)
           echo "Bastion Host IP: $BASTION_HOST_IP"
           echo "PRIVATE AIRFLOW IP: $PRIVATE_AIRFLOW_IP"
-          echo "::set-output name=bastion_host_ip::$BASTION_HOST_IP"
-          echo "::set-output name=private_airflow_ip::$PRIVATE_AIRFLOW_IP"
+          # echo "::set-output name=bastion_host_ip::$BASTION_HOST_IP"
+          # echo "::set-output name=private_airflow_ip::$PRIVATE_AIRFLOW_IP"
+          echo "bastion_host_ip=$BASTION_HOST_IP" >> $GITHUB_OUTPUT
+          echo "private_airflow_ip=$PRIVATE_AIRFLOW_IP" >> $GITHUB_OUTPUT
 
     
       - name: Create SSH key file
