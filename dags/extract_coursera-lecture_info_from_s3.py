@@ -42,7 +42,7 @@ def execute_select_query(lecture_id):
     mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")
 
     # SQL 쿼리 (파라미터화된 버전)
-    select_query = "SELECT is_new, is_recommend FROM test WHERE lecture_id = %s"
+    select_query = "SELECT is_new, is_recommend FROM Lecture_info WHERE lecture_id = %s"
 
     # 쿼리 실행 및 결과 가져오기
     result = mysql_hook.get_first(select_query, parameters=(lecture_id,))
@@ -91,29 +91,10 @@ def process_s3_json_files(**context):
 
         whatdoilearn_list = [str(item) if item is not None else '' for item in whatdoilearn_list]
         tag_list = [str(item) if item is not None else '' for item in tag_list]
-        
-        # price = data.get("price", 0)
-        # scope = data.get("scope", 0.0)
-        # review_count = data.get("review_count", 0)
-
-        # try:
-        #     price = int(price)
-        # except (ValueError, TypeError):
-        #     price = 0
-
-        # try:
-        #     scope = float(scope)
-        # except (ValueError, TypeError):
-        #     scope = 0.0
-
-        # try:
-        #     review_count = int(review_count)
-        # except (ValueError, TypeError):
-        #     review_count = 0
 
         if is_new is None and is_recommend is None:
             insert_query = """
-                INSERT INTO test (lecture_id, lecture_name, price, description, whatdoilearn, tag, teacher, scope, review_count, lecture_time, level, platform_name, thumbnail_url, is_new, is_recommend)
+                INSERT INTO Lecture_info (lecture_id, lecture_name, price, description, whatdoilearn, tag, teacher, scope, review_count, lecture_time, level, platform_name, thumbnail_url, is_new, is_recommend)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             if "recommend" in json_file:
@@ -158,7 +139,7 @@ def process_s3_json_files(**context):
         elif is_recommend == False and "recommend" in json_file:
             # UPDATE 쿼리 준비
             update_query = """
-                UPDATE test
+                UPDATE Lecture_info
                 SET is_recommend = %s
                 WHERE lecture_id = %s
             """
@@ -166,7 +147,7 @@ def process_s3_json_files(**context):
         elif is_new == False and "recent" in json_file:
             # UPDATE 쿼리 준비
             update_query = """
-                UPDATE test
+                UPDATE Lecture_info
                 SET is_new = %s
                 WHERE lecture_id = %s
             """
@@ -177,7 +158,7 @@ def process_s3_json_files(**context):
 
 
 with DAG(
-    "s3_json_file_processing",
+    "s3_to_lecture_info_table",
     default_args=default_args,
     description="DAG to process all JSON files from an S3 bucket",
     schedule_interval=None,

@@ -1,5 +1,4 @@
 from airflow import DAG
-from airflow.models import Variable
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 import json, logging, re, requests, os
@@ -33,6 +32,7 @@ def extract_course_url_from_s3(**kwargs):
 
     with open('/tmp/all_courses_url.json', 'w') as f:
         json.dump(all_courses_url, f, ensure_ascii=False, indent=4)
+        
     logging.info(all_courses_url)
     logging.info(f"Extracted and saved course URLs to /tmp/all_courses_url.json")
 
@@ -196,6 +196,10 @@ def upload_to_s3(**kwargs):
     
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.map(upload_file, uploads)
+        
+    os.remove('/tmp/all_courses_url.json'),
+    os.remove('/tmp/all_course_infos.json'),
+    os.remove('/tmp/all_course_reviews.json')
 
 default_args = {
     'owner': 'airflow',
@@ -204,7 +208,7 @@ default_args = {
 }
 
 with DAG(
-    'get_coursera',
+    'coursera_get_lecture_info_reviews',
     default_args=default_args,
     description='Scrape Coursera course info and reviews and upload to S3',
     schedule_interval=timedelta(weeks=1),

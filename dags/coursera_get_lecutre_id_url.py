@@ -109,7 +109,7 @@ default_args = {
 }
 
 with DAG(
-    'get_URL',
+    'coursera_get_lecutre_id_url',
     default_args=default_args,
     description='Extract Coursera URL and upload to S3',
     schedule_interval=timedelta(weeks=1),
