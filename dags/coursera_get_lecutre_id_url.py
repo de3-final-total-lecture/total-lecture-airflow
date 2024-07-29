@@ -82,7 +82,7 @@ def extract_load_url():
                 all_courses_info[course_hash] = course 
 
     json_data = json.dumps(all_courses_info, ensure_ascii=False, indent=4)
-    s3_key = f'raw_data/URL/test/coursera.json'
+    s3_key = f'raw_data/URL/{timestamp}/coursera.json'
        
     uploads.append({
         'string_data': json_data,
