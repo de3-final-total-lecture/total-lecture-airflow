@@ -4,7 +4,7 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.dates import days_ago
 from datetime import timedelta
 from airflow.providers.mysql.hooks.mysql import MySqlHook
-from custom.hashing_functions import encoding_url
+from plugins.base62 import encoding_url
 
 import pendulum
 
