@@ -3,7 +3,7 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from airflow.utils.dates import days_ago
-from airflow import Variable
+# from airflow import Variable
 from tenacity import retry, stop_after_attempt, wait_exponential
 from datetime import timedelta
 import json
