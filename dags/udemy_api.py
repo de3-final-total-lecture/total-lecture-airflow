@@ -1,7 +1,7 @@
 from pyudemy.udemy import UdemyAffiliate
 from airflow import DAG
-# from airflow.models import Variable
-from airflow import Variable
+from airflow.models import Variable
+# from airflow import Variable
 from airflow.operators.python_operator import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.dates import days_ago
