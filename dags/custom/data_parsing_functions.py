@@ -2,7 +2,7 @@ import requests
 import hashlib
 import json
 import logging
-from .hashing_functions import encoding_url
+from plugins.base62 import encoding_url
 
 
 def convert_unix_timestamp_to_hours_minutes(timestamp):
@@ -86,6 +86,7 @@ def parsing_lecture_details(id, lecture_url, keyword, sort_type):
         },
         "main_category": main_category,
         "mid_category": mid_category,
+        "platform_name": "Inflearn",
     }
     json_data = json.dumps(data, ensure_ascii=False, indent=4)
     return json_data

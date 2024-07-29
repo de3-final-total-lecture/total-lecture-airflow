@@ -8,7 +8,7 @@ import concurrent.futures
 import logging
 from datetime import timedelta
 import time
-from .hashing_functions import encoding_url
+from plugins.base62 import encoding_url
 
 
 class InflearnToS3Operator(BaseOperator):
