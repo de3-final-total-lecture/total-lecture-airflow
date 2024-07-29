@@ -68,12 +68,13 @@ def process_s3_json_files(**context):
         # 여기에서 json_content를 처리하는 로직 추가
         data = json_content["content"]
         lecture_id = data["lecture_id"]
+        platform_name = json_content["platform_name"]
         is_new, is_recommend = execute_select_query(lecture_id)
 
         if is_new is None and is_recommend is None:
             insert_query = """
-                INSERT INTO Lecture_info (lecture_id, lecture_name, price, description, what_do_i_learn, tag, level, teacher, scope, review_count, lecture_time, thumbnail_url, is_new, is_recommend)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO Lecture_info (lecture_id, lecture_name, price, description, what_do_i_learn, tag, level, teacher, scope, review_count, lecture_time, thumbnail_url, is_new, is_recommend, platform_name)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             if data["sort_type"] == "RECOMMEND":
                 insert_data = (
@@ -91,6 +92,7 @@ def process_s3_json_files(**context):
                     data["thumbnail_url"],
                     False,
                     True,
+                    platform_name,
                 )
             elif data["sort_type"] == "RECENT":
                 insert_data = (
@@ -108,6 +110,7 @@ def process_s3_json_files(**context):
                     data["thumbnail_url"],
                     True,
                     False,
+                    platform_name,
                 )
             mysql_hook.run(insert_query, parameters=insert_data)
         elif is_recommend == False and data["sort_type"] == "RECOMMEND":
