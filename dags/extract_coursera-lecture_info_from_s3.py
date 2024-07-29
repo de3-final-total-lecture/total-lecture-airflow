@@ -20,7 +20,7 @@ default_args = {
 
 
 def get_all_json_files_from_s3(bucket_name, prefix=""):
-    s3_hook = S3Hook(aws_conn_id='aws_conn_id')
+    s3_hook = S3Hook(aws_conn_id='aws_s3_connection')
     keys = s3_hook.list_keys(bucket_name, prefix=prefix)
     json_files = [key for key in keys if key.endswith(".json")]
     return json_files
@@ -28,7 +28,7 @@ def get_all_json_files_from_s3(bucket_name, prefix=""):
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def read_json_file_from_s3(bucket_name, key):
-    s3_hook = S3Hook(aws_conn_id='aws_conn_id')
+    s3_hook = S3Hook(aws_conn_id='aws_s3_connection')
     content = s3_hook.read_key(key, bucket_name)
     return json.loads(content)
 
