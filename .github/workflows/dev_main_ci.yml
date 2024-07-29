@@ -1,0 +1,30 @@
+name: Continuously integrate codes on branches from dev to main
+
+on:
+  push:
+    branches: [ "dev" ]
+
+jobs:
+  auto_merge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GIT_AUTH_TOKEN }}
+      
+      - name: git set up
+        run: |
+          git config --global user.name ${{ var.USER_NAME }}
+          git config --global user.email ${{ var.USER_EMAIL }}
+
+      - name: merge branches from dev to main
+        run: |
+          git fetch origin main
+          git checkout main
+          git merge dev --no-ff -m "Automated merge of dev into main " --no-edit
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GIT_AUTH_TOKEN }}

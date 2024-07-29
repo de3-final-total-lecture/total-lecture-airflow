@@ -1,0 +1,111 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS CLI
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+
+      - name: Get instance ID by Tag
+        id: get-instance
+        run: |
+          BASTION_HOST_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.BASTION_HOST_NAME_TAG }}" --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          PRIVATE_AIRFLOW_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.AIRFLOW_NAME_TAG }}" --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          echo "Bastion Host ID: $BASTION_HOST_ID"
+          echo "PRIVATE AIRFLOW ID: $PRIVATE_AIRFLOW_ID"
+          # echo "::set-output name=bastion_host_id::$BASTION_HOST_ID"
+          # echo "::set-output name=private_airflow_id::$PRIVATE_AIRFLOW_ID"
+          echo "bastion_host_id=$BASTION_HOST_ID" >> $GITHUB_OUTPUT
+          echo "private_airflow_id=$PRIVATE_AIRFLOW_ID" >> $GITHUB_OUTPUT
+
+
+      - name: Check instance status
+        id: check-status
+        run: |
+          BASTION_HOST_STATUS=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.bastion_host_id }} --query 'Reservations[0].Instances[0].State.Name' --output text)
+          PRIVATE_AIRFLOW_STATUS=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.private_airflow_id }} --query 'Reservations[0].Instances[0].State.Name' --output text)
+          echo "Bastion Host STATUS: $BASTION_HOST_STATUS"
+          echo "PRIVATE AIRFLOW STATUS: $PRIVATE_AIRFLOW_STATUS"
+          # echo "::set-output name=bastion_host_status::$BASTION_HOST_STATUS"
+          # echo "::set-output name=private_airflow_status::$PRIVATE_AIRFLOW_STATUS"
+          echo "bastion_host_status=$BASTION_HOST_STATUS" >> $GITHUB_OUTPUT
+          echo "private_airflow_status=$PRIVATE_AIRFLOW_STATUS" >> $GITHUB_OUTPUT
+
+  
+      - name: Start Bastion Host if stopped
+        if: steps.check-status.outputs.bastion_host_status != 'running'
+        run: |
+          aws ec2 start-instances --instance-ids ${{ steps.get-instance.outputs.bastion_host_id }}
+          aws ec2 wait instance-running --instance-ids ${{ steps.get-instance.outputs.bastion_host_id }}
+  
+          
+      - name: Start Private Airflow Server if stopped
+        if: steps.check-status.outputs.private_airflow_status != 'running'
+        run: |
+          aws ec2 start-instances --instance-ids ${{ steps.get-instance.outputs.private_airflow_id }}
+          aws ec2 wait instance-running --instance-ids ${{ steps.get-instance.outputs.private_airflow_id }}
+
+
+      - name: Get instance IPs
+        id: get-instance-ips
+        run: |
+          BASTION_HOST_IP=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.bastion_host_id }} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+          PRIVATE_AIRFLOW_IP=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.private_airflow_id }} --query 'Reservations[0].Instances[0].PrivateIpAddress' --output text)
+          echo "Bastion Host IP: $BASTION_HOST_IP"
+          echo "PRIVATE AIRFLOW IP: $PRIVATE_AIRFLOW_IP"
+          # echo "::set-output name=bastion_host_ip::$BASTION_HOST_IP"
+          # echo "::set-output name=private_airflow_ip::$PRIVATE_AIRFLOW_IP"
+          echo "bastion_host_ip=$BASTION_HOST_IP" >> $GITHUB_OUTPUT
+          echo "private_airflow_ip=$PRIVATE_AIRFLOW_IP" >> $GITHUB_OUTPUT
+
+    
+      - name: Create SSH key file
+        run: |
+          echo "${{ secrets.PRIVATE_KEY }}" > team_jun_1.pem
+          chmod 600 team_jun_1.pem
+          
+
+      - name: Git Pull on Airflow Server
+        run: |
+          sleep 10
+          ssh -f -N -M -S my-cicd-socket -o StrictHostKeyChecking=no -i team_jun_1.pem -L 2222:${{ steps.get-instance-ips.outputs.private_airflow_ip }}:22 ubuntu@${{ steps.get-instance-ips.outputs.bastion_host_ip}}
+          ssh -o StrictHostKeyChecking=no -i team_jun_1.pem -p 2222 ubuntu@localhost << 'EOF'
+            echo "Connected to Private Subnet Airflow SAeerver via SSH Tunneling"
+            cd ${{ vars.AIRFLOW_DIR }}
+            git config --global credential.helper store
+            echo "https://${{ secrets.GIT_AUTH_TOKEN }}:@github.com" > ~/.git-credentials
+            git pull origin main
+            rm ~/.git-credentials
+          EOF
+          ssh -S my-cicd-socket -O exit ubuntu@${{ steps.get-instance-ips.output.bastion_host_ip }}
+
+          
+    # # below CI/CD code is only work in when servers are running!
+    # steps:
+    #   - name: Create SSH key file
+    #     run: |
+    #       echo "${{ secrets.PRIVATE_KEY }}" > team_jun_1.pem
+    #       chmod 600 team_jun_1.pem
+    #   - name: pull to EC2          
+    #     run: |
+    #       ssh -f -N -M -S my-ctrl-socket -o StrictHostKeyChecking=no -i team_jun_1.pem -L 2222:${{ secrets.PRIVATE_AIRFLOW_IP }}:22 ubuntu@${{ vars.BASTION_HOST_IP }}
+    #       ssh -o StrictHostKeyChecking=no -i team_jun_1.pem -p 2222 ubuntu@localhost << 'EOF'
+    #         echo "Connected to Private Subnet Server via SSH Tunnel"
+    #         cd airflow-docker
+    #         git config --global credential.helper store
+    #         echo "https://${{ secrets.GIT_AUTH_TOKEN }}:@github.com" > ~/.git-credentials
+    #         git pull origin main
+    #         rm ~/.git-credentials
+    #       EOF
+    #       # Close SSH tunnel
+    #       ssh -S my-ctrl-socket -O exit ubuntu@${{ vars.BASTION_HOST_IP }}
