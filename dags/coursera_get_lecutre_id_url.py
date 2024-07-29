@@ -67,7 +67,7 @@ def crawling_course_url(keyword, sort_value):
         return courses_info
 
 def extract_load_url():
-    s3_hook = S3Hook(aws_conn_id='aws_conn_id')
+    s3_hook = S3Hook(aws_conn_id='aws_s3_connection')
     timestamp = datetime.now().strftime('%m-%d')
     all_courses_info = {}
     uploads = []

@@ -17,7 +17,7 @@ headers = {
 
 def extract_course_url_from_s3(**kwargs):
     timestamp = datetime.now().strftime('%m-%d')
-    s3_hook = S3Hook(aws_conn_id='aws_conn_id')
+    s3_hook = S3Hook(aws_conn_id='aws_s3_connection')
     all_courses_url = []
 
     base_s3_path = f'raw_data/URL/{timestamp}/coursera.json'
@@ -152,7 +152,7 @@ def get_course_info_and_reviews(**kwargs):
 
 def upload_to_s3(**kwargs):
     timestamp = datetime.now().strftime('%m-%d')
-    s3_hook = S3Hook(aws_conn_id='aws_conn_id')
+    s3_hook = S3Hook(aws_conn_id='aws_s3_connection')
     
     with open('/tmp/all_course_infos.json', 'r') as f:
         all_course_infos = json.load(f)
