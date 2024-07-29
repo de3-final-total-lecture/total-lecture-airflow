@@ -158,7 +158,7 @@ def process_s3_json_files(**context):
 
 
 with DAG(
-    "s3_to_lecture_info_table",
+    "s3_to_coursera_info_table",
     default_args=default_args,
     description="DAG to process all JSON files from an S3 bucket",
     schedule_interval=None,
