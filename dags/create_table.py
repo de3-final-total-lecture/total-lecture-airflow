@@ -71,6 +71,7 @@ with DAG(
             thumbnail_url VARCHAR(511),
             is_new BOOLEAN,
             is_recommend BOOLEAN,
+            platform_name VARCHAR(32),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         );""",
