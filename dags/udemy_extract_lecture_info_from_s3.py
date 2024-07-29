@@ -3,19 +3,16 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from airflow.utils.dates import days_ago
-# from airflow import Variable
 from tenacity import retry, stop_after_attempt, wait_exponential
 from datetime import timedelta
 import json
 import logging
 import pendulum
-# import pymysql
 
 '''
 product/{timestamp}/flatform_해시url.json
 '''
 
-# pymysql.install_as_MySQLdb()
 kst = pendulum.timezone("Asia/Seoul")
 # 기본 설정
 default_args = {
@@ -26,7 +23,7 @@ default_args = {
 def get_all_json_files_from_s3(bucket_name, prefix=""):
     s3_hook = S3Hook(aws_conn_id='aws_s3_connection')
     keys = s3_hook.list_keys(bucket_name, prefix=prefix)
-    json_files = [key for key in keys if key.endswith(".json")] #key.startswith('udemy')
+    json_files = [key for key in keys if key.endswith(".json")]
     return json_files
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
@@ -108,7 +105,10 @@ def process_s3_json_files(**context):
                 INSERT INTO Lecture_info (lecture_name, platform_name, teacher, price, scope, review_count, description, what_do_i_learn, tag, lecture_time, level, lecture_id, thumbnail_url, is_new, is_recommend)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
-            if "recommend" in json_file:
+            sort_type = data.get("sort_type", "").lower()
+            is_new_val = True if sort_type == "recent" else False
+            is_recommend_val = True if sort_type == "recommend" else False
+            if "recommend" in data:
                 insert_data = (
                     data.get("lecture_name", ""),
                     json_content.get("platform_name"),
@@ -126,23 +126,10 @@ def process_s3_json_files(**context):
                     False,
                     True,
                 )
-                '''
-                        data["lecture_name"],
-                        data["teacher"],
-                        data["price"],
-                        data["scope"],
-                        data["review_count"],
-                        data["description"],
-                        "|".join(data["whatdoilearn"]),
-                        "|".join(data["tag"]),
-                        data["lecture_time"],
-                        data["level"],
-                        data["lecture_id"],
-                        data["thumbnail_url"],
-                '''
-            elif "recent" in json_file:
+            elif "recent" in data:
                 insert_data = (
                     data.get("lecture_name", ""),
+                    json_content.get("platform_name"),
                     data.get("teacher", ""),
                     price,
                     scope,
@@ -152,7 +139,7 @@ def process_s3_json_files(**context):
                     "|".join(tag_list),
                     data.get("lecture_time", ""),
                     data.get("level", ""),
-                    data.get("lecture_id"),
+                    lecture_id,
                     data.get("thumbnail_url", ""),
                     True,
                     False,
