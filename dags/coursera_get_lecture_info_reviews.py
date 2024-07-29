@@ -20,7 +20,7 @@ def extract_course_url_from_s3(**kwargs):
     s3_hook = S3Hook(aws_conn_id='aws_conn_id')
     all_courses_url = []
 
-    base_s3_path = f'raw_data/URL/test/coursera.json'
+    base_s3_path = f'raw_data/URL/{timestamp}/coursera.json'
     file_keys = s3_hook.list_keys(bucket_name='team-jun-1-bucket', prefix=base_s3_path)
 
     for file_key in file_keys:
@@ -166,7 +166,7 @@ def upload_to_s3(**kwargs):
     for course_info in all_course_infos:
         lecture_id = course_info['content']['lecture_id']
         sort_type = course_info['content']['sort_type'].lower()
-        course_s3_path = f'product/test/{sort_type}/coursera_{lecture_id}.json'
+        course_s3_path = f'product/{timestamp}/{sort_type}/coursera_{lecture_id}.json'
         
         uploads.append({
             'string_data': json.dumps(course_info, ensure_ascii=False, indent=4),
@@ -177,7 +177,7 @@ def upload_to_s3(**kwargs):
     for course_review in all_course_reviews:
         lecture_url = course_review['lecture_url']
         lecture_id = course_review['lecture_id']
-        review_s3_path = f'analytics/reviews/test/{lecture_id}.json'
+        review_s3_path = f'analytics/reviews/{timestamp}/{lecture_id}.json'
         
         uploads.append({
             'string_data': json.dumps(course_review, ensure_ascii=False, indent=4),

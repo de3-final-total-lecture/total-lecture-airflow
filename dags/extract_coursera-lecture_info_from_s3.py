@@ -51,13 +51,13 @@ def execute_select_query(lecture_id):
 
 
 def process_s3_json_files(**context):
-    # execution_date = context["execution_date"]
-    # korean_time = execution_date - timedelta(hours=12)
-    # today = korean_time.strftime("%m-%d")
+    execution_date = context["execution_date"]
+    korean_time = execution_date - timedelta(hours=12)
+    today = korean_time.strftime("%m-%d")
 
     mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")
     bucket_name = "team-jun-1-bucket"
-    prefixes = [f"product/test/recommend", f"product/test/recent"]
+    prefixes = [f"product/{today}/recommend", f"product/{today}/recent"]
 
     # 모든 JSON 파일 목록 가져오기
     json_files = []
