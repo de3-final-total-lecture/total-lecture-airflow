@@ -17,8 +17,8 @@ jobs:
       
       - name: git set up
         run: |
-          git config --global user.name ${{ var.USER_NAME }}
-          git config --global user.email ${{ var.USER_EMAIL }}
+          git config --global user.name ${{ vars.USER_NAME }}
+          git config --global user.email ${{ vars.USER_EMAIL }}
 
       - name: merge branches from dev to main
         run: |
