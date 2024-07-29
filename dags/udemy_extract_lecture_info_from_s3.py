@@ -9,13 +9,13 @@ from datetime import timedelta
 import json
 import logging
 import pendulum
-import pymysql
+# import pymysql
 
 '''
 product/{timestamp}/flatform_해시url.json
 '''
 
-pymysql.install_as_MySQLdb()
+# pymysql.install_as_MySQLdb()
 kst = pendulum.timezone("Asia/Seoul")
 # 기본 설정
 default_args = {
