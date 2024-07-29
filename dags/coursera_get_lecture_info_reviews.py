@@ -165,7 +165,7 @@ def upload_to_s3(**kwargs):
 
     for course_info in all_course_infos:
         lecture_id = course_info['content']['lecture_id']
-        sort_type = course_info['content']['sort_type'].lower()
+        sort_type = course_info['content']['sort_type'].upper()
         course_s3_path = f'product/{timestamp}/{sort_type}/coursera_{lecture_id}.json'
         
         uploads.append({
