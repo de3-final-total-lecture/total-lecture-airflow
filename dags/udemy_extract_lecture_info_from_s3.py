@@ -105,10 +105,7 @@ def process_s3_json_files(**context):
                 INSERT INTO Lecture_info (lecture_name, platform_name, teacher, price, scope, review_count, description, what_do_i_learn, tag, lecture_time, level, lecture_id, thumbnail_url, is_new, is_recommend)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
-            sort_type = data.get("sort_type", "").lower()
-            is_new_val = True if sort_type == "recent" else False
-            is_recommend_val = True if sort_type == "recommend" else False
-            if "recommend" in data:
+            if "RECOMMEND" in data:
                 insert_data = (
                     data.get("lecture_name", ""),
                     json_content.get("platform_name"),
@@ -126,7 +123,7 @@ def process_s3_json_files(**context):
                     False,
                     True,
                 )
-            elif "recent" in data:
+            elif "RECENT" in data:
                 insert_data = (
                     data.get("lecture_name", ""),
                     json_content.get("platform_name"),
@@ -162,7 +159,6 @@ def process_s3_json_files(**context):
                 WHERE lecture_id = %s
             """
             mysql_hook.run(update_query, parameters=(True, lecture_id))
-        # logging.info(f"success : {json_content['lecture_url']} ")
         
 with DAG(
     "udemy_s3_json_file_processing",
