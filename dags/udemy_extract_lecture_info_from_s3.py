@@ -26,7 +26,7 @@ default_args = {
 def get_all_json_files_from_s3(bucket_name, prefix=""):
     s3_hook = S3Hook(aws_conn_id='aws_s3_connection')
     keys = s3_hook.list_keys(bucket_name, prefix=prefix)
-    json_files = [key for key in keys if key.endswith(".json")]
+    json_files = [key for key in keys if key.endswith(".json") and key.startswith("udemy")]
     return json_files
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
@@ -104,7 +104,7 @@ def process_s3_json_files(**context):
         logging.info(f"is_recommend: {is_recommend}")
         if is_new is None and is_recommend is None:
             insert_query = """
-                INSERT INTO Lecture_info (lecture_name, platform_name, teacher, price, scope, review_count, description, whatdoilearn, tag, lecture_time, level, lecture_id, thumbnail_url, is_new, is_recommend)
+                INSERT INTO Lecture_info (lecture_name, platform_name, teacher, price, scope, review_count, description, what_do_i_learn, tag, lecture_time, level, lecture_id, thumbnail_url, is_new, is_recommend)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             if "recommend" in json_file:
