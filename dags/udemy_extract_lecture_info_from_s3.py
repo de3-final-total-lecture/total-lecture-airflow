@@ -72,7 +72,7 @@ def process_s3_json_files(**context):
         data = json_content["content"]
         lecture_id = data["lecture_id"]
         is_new, is_recommend = execute_select_query(lecture_id)
-        whatdoilearn_list = data.get("whatdoilearn", [])
+        whatdoilearn_list = data.get("what_do_i_learn", [])
         if isinstance(whatdoilearn_list, str):
             whatdoilearn_list = [whatdoilearn_list]
         elif not isinstance(whatdoilearn_list, list):
@@ -99,6 +99,9 @@ def process_s3_json_files(**context):
             review_count = int(review_count)
         except (ValueError, TypeError):
             review_count = 0
+        logging.info(f'lecture_id: {lecture_id}')
+        logging.info(f"is_new: {is_new}")
+        logging.info(f"is_recommend: {is_recommend}")
         if is_new is None and is_recommend is None:
             insert_query = """
                 INSERT INTO Lecture_info (lecture_name, platform_name, teacher, price, scope, review_count, description, whatdoilearn, tag, lecture_time, level, lecture_id, thumbnail_url, is_new, is_recommend)
@@ -117,7 +120,7 @@ def process_s3_json_files(**context):
                     "|".join(tag_list),
                     data.get("lecture_time", ""),
                     data.get("level", ""),
-                    data.get("lecture_id"),
+                    lecture_id,
                     data.get("thumbnail_url", ""),
                     False,
                     True,
@@ -154,6 +157,7 @@ def process_s3_json_files(**context):
                     False,
                 )
             mysql_hook.run(insert_query, parameters=insert_data)
+            logging.info(f"{insert_query}, {insert_data}")
         elif is_recommend == False and "recommend" in json_file:
             # UPDATE 쿼리 준비
             update_query = """
