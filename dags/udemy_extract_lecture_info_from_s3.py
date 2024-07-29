@@ -26,7 +26,7 @@ default_args = {
 def get_all_json_files_from_s3(bucket_name, prefix=""):
     s3_hook = S3Hook(aws_conn_id='aws_s3_connection')
     keys = s3_hook.list_keys(bucket_name, prefix=prefix)
-    json_files = [key for key in keys if key.startswith("udemy")] #  and key.endswith(".json")
+    json_files = [key for key in keys if key.endswith(".json")] 
     return json_files
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
@@ -56,7 +56,7 @@ def process_s3_json_files(**context):
     logging.info('mysql 접속 시도')
     mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")
     bucket_name = "team-jun-1-bucket"
-    prefixes = [f"product/{today}/RECOMMEND", f"product/{today}/RECENT"]
+    prefixes = [f"product/{today}/RECOMMEND/", f"product/{today}/RECENT/"]
     # 모든 JSON 파일 목록 가져오기
     json_files = []
     logging.info('json가져오기 시작')
