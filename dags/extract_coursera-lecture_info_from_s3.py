@@ -90,7 +90,7 @@ def process_s3_json_files(**context):
 
         if is_new is None and is_recommend is None:
             insert_query = """
-                INSERT INTO Lecture_info (lecture_id, lecture_name, price, description, whatdoilearn, tag, teacher, scope, review_count, lecture_time, level, platform_name, thumbnail_url, is_new, is_recommend)
+                INSERT INTO Lecture_info (lecture_id, lecture_name, price, description, what_do_i_learn, tag, teacher, scope, review_count, lecture_time, level, platform_name, thumbnail_url, is_new, is_recommend)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             if "recommend" in json_file:
