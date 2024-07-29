@@ -92,7 +92,7 @@ def extract_udemy(sort_type, **kwargs):
 
     # 저장할 bucket에 접근
     html_bucket = Variable.get('bucket_name')
-    s3_hook = S3Hook(aws_conn_id='aws_conn_id')
+    s3_hook = S3Hook(aws_conn_id='aws_s3_connection')
     url_json = {}
     
     for keyword in keywords["keywords"]:

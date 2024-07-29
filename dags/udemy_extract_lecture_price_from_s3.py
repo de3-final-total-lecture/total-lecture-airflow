@@ -24,7 +24,7 @@ def udemy_api(CLIENT_ID, CLIENT_SECRET, course_id):
     return int(detail['price_detail']['amount'])
 
 def get_udemy_json_files_from_s3(bucket_name, prefix):
-    s3_hook = S3Hook(aws_conn_id="aws_conn_id")
+    s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
     keys = s3_hook.list_keys(bucket_name, prefix=prefix)
     udemy_json_files = [key for key in keys if key.startswith("udemy") and key.endswith(".json")]
     return udemy_json_files
@@ -32,7 +32,7 @@ def get_udemy_json_files_from_s3(bucket_name, prefix):
 # 지정한 특정 JSON파일만 서칭
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def read_json_file_from_s3(bucket_name, key):
-    s3_hook = S3Hook(aws_conn_id="aws_conn_id")
+    s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
     content = s3_hook.read_key(key, bucket_name)
     return json.loads(content)
 
@@ -45,7 +45,7 @@ def _get_lecture_price(sort_word, **context):
     today = korean_time.strftime("%m-%d")
 
     mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")
-    s3_hook = S3Hook(aws_conn_id="aws_conn_id")
+    s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
     bucket_name = "team-jun-1-bucket"
     prefix = f"product/{today}/{sort_word}"
 
