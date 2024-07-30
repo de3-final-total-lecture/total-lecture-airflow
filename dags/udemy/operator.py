@@ -147,9 +147,9 @@ class UdemyInfoToS3Operator(BaseOperator):
         logging.info(
             f"------------------- Start : {unquote(keyword)} ------------------------------"
         )
-        logging.info(search_url)
 
         search_url = "https://www.udemy.com" + course["url"]
+        logging.info(search_url)
         title = course["title"]
 
         price = int(course["price_detail"]["amount"])
