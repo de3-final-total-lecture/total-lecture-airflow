@@ -55,6 +55,7 @@ class UdemyInfoToS3Operator(BaseOperator):
                 "language": "ko",
                 "ordering": self.sort_type,
                 "ratings": 3.0,
+                "price": "price-paid",
                 "page": 1,
                 "page_size": self.page_size,
                 "fields[course]": "url,title,price_detail,headline,visible_instructors,image_480x270,instructional_level,description,avg_rating",
@@ -158,7 +159,11 @@ class UdemyInfoToS3Operator(BaseOperator):
         # Description 추출
         course_id = course["id"]
         course_element = self.get_udemy(course_id)
-        description = course_element["units"][0]["items"][0]["objectives_summary"]
+
+        try:
+            description = course_element["units"][0]["items"][0]["objectives_summary"]
+        except:
+            description = []
 
         teacher = course["visible_instructors"][0]["display_name"]
         scope = round(course["avg_rating"], 1)
