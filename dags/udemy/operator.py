@@ -66,8 +66,6 @@ class UdemyInfoToS3Operator(BaseOperator):
             main_json, reviews_json, hash_url, count = self.func(
                 main_results, keyword, count
             )
-            logging.info(main_results)
-            logging.info(reviews_json)
             main_s3_key = f"product/{self.today}/{self.sort_type}/udemy_{hash_url}.json"
             review_s3_key = f"analytics/reviews/{self.today}/{hash_url}.json"
             uploads.append({"content": main_json, "key": main_s3_key})
@@ -93,7 +91,6 @@ class UdemyInfoToS3Operator(BaseOperator):
         return json.loads(file_content)
 
     def upload_to_s3(self, uploads):
-        logging("S3에 업로드합니다.")
 
         def upload_file(data):
             self.s3_hook.load_string(
@@ -241,4 +238,8 @@ class UdemyInfoToS3Operator(BaseOperator):
             logging.info(
                 f"------------------- END : {unquote(keyword)}_{count} ------------------------------"
             )
+            logging.info(main_json)
+            logging.info(reveiws_json)
+            logging.info(hash_url)
+            logging.info(count)
             return main_json, reveiws_json, hash_url, count
