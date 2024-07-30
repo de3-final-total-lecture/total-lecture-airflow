@@ -81,4 +81,4 @@ with DAG(
 
     end = EmptyOperator(task_id="end")
 
-    start >> section_1 >> section_2 >> end
+    start >> section_2 >> end
