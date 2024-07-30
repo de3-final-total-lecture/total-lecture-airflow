@@ -229,4 +229,5 @@ class UdemyInfoToS3Operator(BaseOperator):
                 "sort_type": self.sort_word,
             },
         }
+        logging.info(search_url)
         return main_json, reviews_json, hash_url
