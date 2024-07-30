@@ -50,32 +50,28 @@ class UdemyInfoToS3Operator(BaseOperator):
         keywords_json = self.get_keywords_json_file_from_s3()
         uploads = []
         for keyword in keywords_json["keywords"]:
-            try:
-                main_params = {
-                    "search": unquote(keyword),
-                    "language": "ko",
-                    "ordering": self.sort_type,
-                    "ratings": 3.0,
-                    "page": 1,
-                    "page_size": self.page_size,
-                    "fields[course]": "url,title,price_detail,headline,visible_instructors,image_480x270,instructional_level,description,avg_rating",
-                }
+            main_params = {
+                "search": unquote(keyword),
+                "language": "ko",
+                "ordering": self.sort_type,
+                "ratings": 3.0,
+                "page": 1,
+                "page_size": self.page_size,
+                "fields[course]": "url,title,price_detail,headline,visible_instructors,image_480x270,instructional_level,description,avg_rating",
+            }
 
-                count = 0
+            count = 0
 
-                main_results = self.udemy.courses(**main_params)
-                main_json, reviews_json, hash_url, count = self.func(
-                    main_results, keyword, count
-                )
-                logging.info("됐어?")
-                main_s3_key = (
-                    f"product/{self.today}/{self.sort_type}/udemy_{hash_url}.json"
-                )
-                review_s3_key = f"analytics/reviews/{self.today}/{hash_url}.json"
-                uploads.append({"content": main_json, "key": main_s3_key})
-                uploads.append({"content": reviews_json, "key": review_s3_key})
-            except Exception as e:
-                logging.info(f"Error processing keyword {unquote(keyword)}: {str(e)}")
+            main_results = self.udemy.courses(**main_params)
+            main_json, reviews_json, hash_url, count = self.func(
+                main_results, keyword, count
+            )
+            logging.info(main_results)
+            logging.info(reviews_json)
+            main_s3_key = f"product/{self.today}/{self.sort_type}/udemy_{hash_url}.json"
+            review_s3_key = f"analytics/reviews/{self.today}/{hash_url}.json"
+            uploads.append({"content": main_json, "key": main_s3_key})
+            uploads.append({"content": reviews_json, "key": review_s3_key})
         self.upload_to_s3(uploads)
 
     @retry(
@@ -97,6 +93,8 @@ class UdemyInfoToS3Operator(BaseOperator):
         return json.loads(file_content)
 
     def upload_to_s3(self, uploads):
+        logging("S3에 업로드합니다.")
+
         def upload_file(data):
             self.s3_hook.load_string(
                 string_data=data["content"],
