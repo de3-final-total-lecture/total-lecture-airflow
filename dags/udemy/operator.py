@@ -63,9 +63,7 @@ class UdemyInfoToS3Operator(BaseOperator):
             main_results = self.udemy.courses(**main_params)
             for course in main_results["results"]:
                 count += 1
-                main_json, reviews_json, hash_url, count = self.func(
-                    course, keyword, count
-                )
+                main_json, reviews_json, hash_url, count = self.func(course, keyword)
                 main_s3_key = (
                     f"product/{self.today}/{self.sort_type}/udemy_{hash_url}.json"
                 )
