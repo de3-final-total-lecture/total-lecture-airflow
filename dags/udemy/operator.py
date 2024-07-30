@@ -63,6 +63,8 @@ class UdemyInfoToS3Operator(BaseOperator):
             main_results = self.udemy.courses(**main_params)
             for course in main_results["results"]:
                 main_json, reviews_json, hash_url = self.func(course, keyword)
+                if main_json is None and reviews_json is None and hash_url is None:
+                    continue
                 main_s3_key = (
                     f"product/{self.today}/{self.sort_type}/udemy_{hash_url}.json"
                 )
@@ -145,94 +147,96 @@ class UdemyInfoToS3Operator(BaseOperator):
         return response
 
     def func(self, course, keyword):
-        logging.info(
-            f"------------------- Start : {unquote(keyword)} ------------------------------"
-        )
-
-        search_url = "https://www.udemy.com" + course["url"]
-        logging.info(search_url)
-        title = course["title"]
-
-        price = int(course["price_detail"]["amount"])
-        headline = course["headline"]
-
-        # Description 추출
-        course_id = course["id"]
-        course_element = self.get_udemy(course_id)
-
         try:
+            logging.info(
+                f"------------------- Start : {unquote(keyword)} ------------------------------"
+            )
+
+            search_url = "https://www.udemy.com" + course["url"]
+            logging.info(search_url)
+            title = course["title"]
+
+            price = int(course["price_detail"]["amount"])
+            headline = course["headline"]
+
+            # Description 추출
+            course_id = course["id"]
+            course_element = self.get_udemy(course_id)
+
             description = course_element["units"][0]["items"][0]["objectives_summary"]
-        except:
-            description = []
 
-        teacher = course["visible_instructors"][0]["display_name"]
-        scope = round(course["avg_rating"], 1)
-        img_url = course["image_480x270"]
+            teacher = course["visible_instructors"][0]["display_name"]
+            scope = round(course["avg_rating"], 1)
+            img_url = course["image_480x270"]
 
-        lecture_time_element = course_element["units"][0]["items"][0]["content_info"]
-        lecture_time = self.convert_format(lecture_time_element)
+            lecture_time_element = course_element["units"][0]["items"][0][
+                "content_info"
+            ]
+            lecture_time = self.convert_format(lecture_time_element)
 
-        level = course["instructional_level"]
-        if level == "All Levels":
-            level = "All"
-        elif level == "Beginner Level":
-            level = "입문"
-        elif level == "Intermediate Level":
-            level = "초급"
-        else:
-            level = "중급이상"
+            level = course["instructional_level"]
+            if level == "All Levels":
+                level = "All"
+            elif level == "Beginner Level":
+                level = "입문"
+            elif level == "Intermediate Level":
+                level = "초급"
+            else:
+                level = "중급이상"
 
-        # Review
-        review_endpoint = f"{self.base_url}/courses/{course_id}/reviews/"
-        response = requests.get(
-            review_endpoint, auth=self.auth, params=self.review_params
-        )
-        courses = response.json()
-        review_cnt = courses["count"]
+            # Review
+            review_endpoint = f"{self.base_url}/courses/{course_id}/reviews/"
+            response = requests.get(
+                review_endpoint, auth=self.auth, params=self.review_params
+            )
+            courses = response.json()
+            review_cnt = courses["count"]
 
-        hash_url = encoding_url(search_url)
+            hash_url = encoding_url(search_url)
 
-        rating_5 = []
-        rating_4 = []
-        rating_3 = []
+            rating_5 = []
+            rating_4 = []
+            rating_3 = []
 
-        for course_detail in courses["results"]:
-            if course_detail["content"] and "http" not in course_detail["content"]:
-                if int(course_detail["rating"]) == 5 and len(rating_5) < 7:
-                    rating_5.append(course_detail["content"])
-                if 4 <= course_detail["rating"] <= 4.5 and len(rating_4) < 2:
-                    rating_4.append(course_detail["content"])
-                if 3 <= course_detail["rating"] <= 3.5 and len(rating_3) < 1:
-                    rating_3.append(course_detail["content"])
-                if len(rating_5) == 7 and len(rating_4) == 2 and len(rating_3) == 1:
-                    break
+            for course_detail in courses["results"]:
+                if course_detail["content"] and "http" not in course_detail["content"]:
+                    if int(course_detail["rating"]) == 5 and len(rating_5) < 7:
+                        rating_5.append(course_detail["content"])
+                    if 4 <= course_detail["rating"] <= 4.5 and len(rating_4) < 2:
+                        rating_4.append(course_detail["content"])
+                    if 3 <= course_detail["rating"] <= 3.5 and len(rating_3) < 1:
+                        rating_3.append(course_detail["content"])
+                    if len(rating_5) == 7 and len(rating_4) == 2 and len(rating_3) == 1:
+                        break
 
-        all_reviews = rating_5 + rating_4 + rating_3
-        reviews_json = {
-            "lecture_id": hash_url,
-            "lecture_url": search_url,
-            "reviews": all_reviews,
-        }
-
-        main_json = {
-            "lecture_url": search_url,
-            "keyword": keyword,
-            "course_id": course_id,
-            "platform_name": "Udemy",
-            "content": {
+            all_reviews = rating_5 + rating_4 + rating_3
+            reviews_json = {
                 "lecture_id": hash_url,
-                "lecture_name": title,
-                "price": price,
-                "description": headline,
-                "what_do_i_learn": description,
-                "tag": [],
-                "level": level,
-                "teacher": teacher,
-                "scope": scope,
-                "review_count": review_cnt,
-                "lecture_time": lecture_time,
-                "thumbnail_url": img_url,
-                "sort_type": self.sort_word,
-            },
-        }
-        return main_json, reviews_json, hash_url
+                "lecture_url": search_url,
+                "reviews": all_reviews,
+            }
+
+            main_json = {
+                "lecture_url": search_url,
+                "keyword": keyword,
+                "course_id": course_id,
+                "platform_name": "Udemy",
+                "content": {
+                    "lecture_id": hash_url,
+                    "lecture_name": title,
+                    "price": price,
+                    "description": headline,
+                    "what_do_i_learn": description,
+                    "tag": [],
+                    "level": level,
+                    "teacher": teacher,
+                    "scope": scope,
+                    "review_count": review_cnt,
+                    "lecture_time": lecture_time,
+                    "thumbnail_url": img_url,
+                    "sort_type": self.sort_word,
+                },
+            }
+            return main_json, reviews_json, hash_url
+        except:
+            return None, None, None
