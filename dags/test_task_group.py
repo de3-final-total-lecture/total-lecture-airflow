@@ -71,10 +71,10 @@ with DAG(
             sort_type="newest",
         )
         [
-            load_coursera_lecture_info,
-            load_coursera_reviews,
-            load_inflearn_lecture_info,
-            load_inflearn_reviews,
+            # load_coursera_lecture_info,
+            # load_coursera_reviews,
+            # load_inflearn_lecture_info,
+            # load_inflearn_reviews,
             load_udemy_info_by_recommend,
             load_udemy_info_by_recent,
         ]
