@@ -59,17 +59,19 @@ class UdemyInfoToS3Operator(BaseOperator):
                 "page_size": self.page_size,
                 "fields[course]": "url,title,price_detail,headline,visible_instructors,image_480x270,instructional_level,description,avg_rating",
             }
-
             count = 0
-
             main_results = self.udemy.courses(**main_params)
-            main_json, reviews_json, hash_url, count = self.func(
-                main_results, keyword, count
-            )
-            main_s3_key = f"product/{self.today}/{self.sort_type}/udemy_{hash_url}.json"
-            review_s3_key = f"analytics/reviews/{self.today}/{hash_url}.json"
-            uploads.append({"content": main_json, "key": main_s3_key})
-            uploads.append({"content": reviews_json, "key": review_s3_key})
+            for course in main_results["results"]:
+                count += 1
+                main_json, reviews_json, hash_url, count = self.func(
+                    course, keyword, count
+                )
+                main_s3_key = (
+                    f"product/{self.today}/{self.sort_type}/udemy_{hash_url}.json"
+                )
+                review_s3_key = f"analytics/reviews/{self.today}/{hash_url}.json"
+                uploads.append({"content": main_json, "key": main_s3_key})
+                uploads.append({"content": reviews_json, "key": review_s3_key})
         self.upload_to_s3(uploads)
 
     @retry(
@@ -145,101 +147,90 @@ class UdemyInfoToS3Operator(BaseOperator):
         response = requests.get(url, params=params).json()
         return response
 
-    def func(self, main_results, keyword, count):
-        for course in main_results["results"]:
-            count += 1
-            logging.info(
-                f"------------------- Start : {unquote(keyword)} ------------------------------"
-            )
+    def func(self, course, keyword):
+        logging.info(
+            f"------------------- Start : {unquote(keyword)} ------------------------------"
+        )
 
-            search_url = "https://www.udemy.com" + course["url"]
-            title = course["title"]
+        search_url = "https://www.udemy.com" + course["url"]
+        title = course["title"]
 
-            price = int(course["price_detail"]["amount"])
-            headline = course["headline"]
+        price = int(course["price_detail"]["amount"])
+        headline = course["headline"]
 
-            # Description 추출
-            course_id = course["id"]
-            course_element = self.get_udemy(course_id)
-            description = course_element["units"][0]["items"][0]["objectives_summary"]
+        # Description 추출
+        course_id = course["id"]
+        course_element = self.get_udemy(course_id)
+        description = course_element["units"][0]["items"][0]["objectives_summary"]
 
-            teacher = course["visible_instructors"][0]["display_name"]
-            scope = round(course["avg_rating"], 1)
-            img_url = course["image_480x270"]
+        teacher = course["visible_instructors"][0]["display_name"]
+        scope = round(course["avg_rating"], 1)
+        img_url = course["image_480x270"]
 
-            lecture_time_element = course_element["units"][0]["items"][0][
-                "content_info"
-            ]
-            lecture_time = self.convert_format(lecture_time_element)
+        lecture_time_element = course_element["units"][0]["items"][0]["content_info"]
+        lecture_time = self.convert_format(lecture_time_element)
 
-            level = course["instructional_level"]
-            if level == "All Levels":
-                level = "All"
-            elif level == "Beginner Level":
-                level = "입문"
-            elif level == "Intermediate Level":
-                level = "초급"
-            else:
-                level = "중급이상"
+        level = course["instructional_level"]
+        if level == "All Levels":
+            level = "All"
+        elif level == "Beginner Level":
+            level = "입문"
+        elif level == "Intermediate Level":
+            level = "초급"
+        else:
+            level = "중급이상"
 
-            # Review
-            review_endpoint = f"{self.base_url}/courses/{course_id}/reviews/"
-            response = requests.get(
-                review_endpoint, auth=self.auth, params=self.review_params
-            )
-            courses = response.json()
-            review_cnt = courses["count"]
+        # Review
+        review_endpoint = f"{self.base_url}/courses/{course_id}/reviews/"
+        response = requests.get(
+            review_endpoint, auth=self.auth, params=self.review_params
+        )
+        courses = response.json()
+        review_cnt = courses["count"]
 
-            hash_url = encoding_url(search_url)
+        hash_url = encoding_url(search_url)
 
-            rating_5 = []
-            rating_4 = []
-            rating_3 = []
+        rating_5 = []
+        rating_4 = []
+        rating_3 = []
 
-            for course_detail in courses["results"]:
-                if course_detail["content"] and "http" not in course_detail["content"]:
-                    if int(course_detail["rating"]) == 5 and len(rating_5) < 7:
-                        rating_5.append(course_detail["content"])
-                    if 4 <= course_detail["rating"] <= 4.5 and len(rating_4) < 2:
-                        rating_4.append(course_detail["content"])
-                    if 3 <= course_detail["rating"] <= 3.5 and len(rating_3) < 1:
-                        rating_3.append(course_detail["content"])
-                    if len(rating_5) == 7 and len(rating_4) == 2 and len(rating_3) == 1:
-                        break
+        for course_detail in courses["results"]:
+            if course_detail["content"] and "http" not in course_detail["content"]:
+                if int(course_detail["rating"]) == 5 and len(rating_5) < 7:
+                    rating_5.append(course_detail["content"])
+                if 4 <= course_detail["rating"] <= 4.5 and len(rating_4) < 2:
+                    rating_4.append(course_detail["content"])
+                if 3 <= course_detail["rating"] <= 3.5 and len(rating_3) < 1:
+                    rating_3.append(course_detail["content"])
+                if len(rating_5) == 7 and len(rating_4) == 2 and len(rating_3) == 1:
+                    break
 
-            all_reviews = rating_5 + rating_4 + rating_3
-            reveiws_json = {
+        all_reviews = rating_5 + rating_4 + rating_3
+        reviews_json = {
+            "lecture_id": hash_url,
+            "lecture_url": search_url,
+            "reviews": all_reviews,
+        }
+
+        main_json = {
+            "lecture_url": search_url,
+            "keyword": keyword,
+            "course_id": course_id,
+            "platform_name": "Udemy",
+            "content": {
                 "lecture_id": hash_url,
-                "lecture_url": search_url,
-                "reviews": all_reviews,
-            }
-
-            main_json = {
-                "lecture_url": search_url,
-                "keyword": keyword,
-                "course_id": course_id,
-                "platform_name": "Udemy",
-                "content": {
-                    "lecture_id": hash_url,
-                    "lecture_name": title,
-                    "price": price,
-                    "description": headline,
-                    "what_do_i_learn": description,
-                    "tag": [],
-                    "level": level,
-                    "teacher": teacher,
-                    "scope": scope,
-                    "review_count": review_cnt,
-                    "lecture_time": lecture_time,
-                    "thumbnail_url": img_url,
-                    "sort_type": self.sort_word,
-                },
-            }
-            logging.info(
-                f"------------------- END : {unquote(keyword)}_{count} ------------------------------"
-            )
-            logging.info(main_json)
-            logging.info(reveiws_json)
-            logging.info(hash_url)
-            logging.info(count)
-            return main_json, reveiws_json, hash_url, count
+                "lecture_name": title,
+                "price": price,
+                "description": headline,
+                "what_do_i_learn": description,
+                "tag": [],
+                "level": level,
+                "teacher": teacher,
+                "scope": scope,
+                "review_count": review_cnt,
+                "lecture_time": lecture_time,
+                "thumbnail_url": img_url,
+                "sort_type": self.sort_word,
+            },
+        }
+        return main_json, reviews_json, hash_url
