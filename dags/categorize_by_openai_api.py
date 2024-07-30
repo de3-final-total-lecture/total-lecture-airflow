@@ -82,7 +82,7 @@ def processing_lecture_data_for_llm(json_content):
     llm_input = {}
     need_columns = ["lecture_id", "lecture_name", "what_do_i_learn", "tag"]
     for col in need_columns:
-        if content[col] != None:
+        if content[col]:
             llm_input[col] = content[col]
     return llm_input
 
