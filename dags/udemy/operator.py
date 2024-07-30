@@ -71,6 +71,7 @@ class UdemyInfoToS3Operator(BaseOperator):
                 review_s3_key = f"analytics/reviews/{self.today}/{hash_url}.json"
                 uploads.append({"content": main_json, "key": main_s3_key})
                 uploads.append({"content": reviews_json, "key": review_s3_key})
+        logging.info(uploads)
         self.upload_to_s3(uploads)
 
     @retry(
@@ -92,6 +93,7 @@ class UdemyInfoToS3Operator(BaseOperator):
         return json.loads(file_content)
 
     def upload_to_s3(self, uploads):
+        logging.info("S3에 저장합니다.")
 
         def upload_file(data):
             self.s3_hook.load_string(
