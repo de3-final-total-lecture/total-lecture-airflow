@@ -54,7 +54,7 @@ def process_s3_json_files(**context):
     mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")
     bucket_name = "team-jun-1-bucket"
     # prefixes = [f"product/{today}/RECOMMEND", f"product/{today}/RECENT"]
-    prefixes = [f"product/07-29/RECOMMEND", f"product/07-29/RECENT"]
+    prefixes = [f"product/07-29/RECOMMEND/", f"product/07-29/RECENT/"]
     # 모든 JSON 파일 목록 가져오기
     json_files = []
     logging.info('json가져오기 시작')
