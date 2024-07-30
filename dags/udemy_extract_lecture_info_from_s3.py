@@ -3,19 +3,16 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from airflow.utils.dates import days_ago
-# from airflow import Variable
 from tenacity import retry, stop_after_attempt, wait_exponential
 from datetime import timedelta
 import json
 import logging
 import pendulum
-# import pymysql
 
 '''
 product/{timestamp}/flatform_해시url.json
 '''
 
-# pymysql.install_as_MySQLdb()
 kst = pendulum.timezone("Asia/Seoul")
 # 기본 설정
 default_args = {
@@ -26,7 +23,7 @@ default_args = {
 def get_all_json_files_from_s3(bucket_name, prefix=""):
     s3_hook = S3Hook(aws_conn_id='aws_s3_connection')
     keys = s3_hook.list_keys(bucket_name, prefix=prefix)
-    json_files = [key for key in keys if key.endswith(".json")] #key.startswith('udemy')
+    json_files = [key for key in keys if key.endswith(".json")]
     return json_files
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
@@ -67,39 +64,53 @@ def process_s3_json_files(**context):
     logging.info('json파일 읽기 시작')
     for json_file in json_files:
         json_content = read_json_file_from_s3(bucket_name, json_file)
-        # logging.info(json_content["lecture_url"])
-        # 여기에서 json_content를 처리하는 로직 추가
         logging.info('data 가져옴')
+        # 여기에서 json_content를 처리하는 로직 추가
         data = json_content["content"]
-        lecture_id = data["lecture_id"]
-        is_new, is_recommend = execute_select_query(lecture_id)
+        lecture_name = data.get('lecture_name')
+        platform_name = json_content['platform_name']
+        teacher = data['teacher']
+        price = data.get('price', 0)
+        scope = data.get('scope', 0.0)
+        review_count = data["review_count"]
+        description = data["description"]
+        
         whatdoilearn_list = data.get("what_do_i_learn", [])
         if isinstance(whatdoilearn_list, str):
             whatdoilearn_list = [whatdoilearn_list]
         elif not isinstance(whatdoilearn_list, list):
             whatdoilearn_list = []
+        
+        whatdoilearn_list = [str(item) if item is not None else '' for item in whatdoilearn_list]
+        
         tag_list = data.get("tag", [])
         if isinstance(tag_list, str):
             tag_list = [tag_list]
         elif not isinstance(tag_list, list):
             tag_list = []
-        whatdoilearn_list = [str(item) if item is not None else '' for item in whatdoilearn_list]
-        tag_list = [str(item) if item is not None else '' for item in tag_list]
-        price = data.get("price", 0)
-        scope = data.get("scope", 0.0)
-        review_count = data.get("review_count", 0)
-        try:
-            price = int(price)
-        except (ValueError, TypeError):
-            price = 0
-        try:
-            scope = float(scope)
-        except (ValueError, TypeError):
-            scope = 0.0
-        try:
-            review_count = int(review_count)
-        except (ValueError, TypeError):
-            review_count = 0
+        
+        tag_list = [str(item) if item is not None else '' for item in tag_list]        
+        
+        lecture_time = data['lecture_time']
+        level = data['level']
+        
+        lecture_id = data["lecture_id"]
+        is_new, is_recommend = execute_select_query(lecture_id)
+        
+        thumbnail_url = data['thumbnail_url']
+        # review_count = data.get("review_count", 0)
+        # try:
+        #     price = int(price)
+        # except (ValueError, TypeError):
+        #     price = 0
+        # try:
+        #     scope = float(scope)
+        # except (ValueError, TypeError):
+        #     scope = 0.0
+        # try:
+        #     review_count = int(review_count)
+        # except (ValueError, TypeError):
+        #     review_count = 0
         logging.info(f'lecture_id: {lecture_id}')
         logging.info(f"is_new: {is_new}")
         logging.info(f"is_recommend: {is_recommend}")
@@ -108,55 +119,78 @@ def process_s3_json_files(**context):
                 INSERT INTO Lecture_info (lecture_name, platform_name, teacher, price, scope, review_count, description, what_do_i_learn, tag, lecture_time, level, lecture_id, thumbnail_url, is_new, is_recommend)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
-            if "recommend" in json_file:
+            # if "RECOMMEND" in data:
+            #     insert_data = (
+            #         data.get("lecture_name", ""),
+            #         json_content.get("platform_name"),
+            #         data.get("teacher", ""),
+            #         price,
+            #         scope,
+            #         review_count,
+            #         data.get("description",""),
+            #         "|".join(whatdoilearn_list),
+            #         "|".join(tag_list),
+            #         data.get("lecture_time", ""),
+            #         data.get("level", ""),
+            #         lecture_id,
+            #         data.get("thumbnail_url", ""),
+            #         False,
+            #         True,
+            #     )
+            if "RECOMMEND" == data['sort_type']:
                 insert_data = (
-                    data.get("lecture_name", ""),
-                    json_content.get("platform_name"),
-                    data.get("teacher", ""),
+                    lecture_name,
+                    platform_name,
+                    teacher,
                     price,
                     scope,
                     review_count,
-                    data.get("description",""),
+                    description,
                     "|".join(whatdoilearn_list),
                     "|".join(tag_list),
-                    data.get("lecture_time", ""),
-                    data.get("level", ""),
+                    lecture_time,
+                    level,
                     lecture_id,
-                    data.get("thumbnail_url", ""),
+                    thumbnail_url,
                     False,
-                    True,
+                    True
                 )
-                '''
-                        data["lecture_name"],
-                        data["teacher"],
-                        data["price"],
-                        data["scope"],
-                        data["review_count"],
-                        data["description"],
-                        "|".join(data["whatdoilearn"]),
-                        "|".join(data["tag"]),
-                        data["lecture_time"],
-                        data["level"],
-                        data["lecture_id"],
-                        data["thumbnail_url"],
-                '''
-            elif "recent" in json_file:
+            # elif "RECENT" in data:
+            #     insert_data = (
+            #         data.get("lecture_name", ""),
+            #         json_content.get("platform_name"),
+            #         data.get("teacher", ""),
+            #         price,
+            #         scope,
+            #         review_count,
+            #         data.get("description",""),
+            #         "|".join(whatdoilearn_list),
+            #         "|".join(tag_list),
+            #         data.get("lecture_time", ""),
+            #         data.get("level", ""),
+            #         lecture_id,
+            #         data.get("thumbnail_url", ""),
+            #         True,
+            #         False,
+            #     )
+            elif "RECENT" == data["sort_type"]:
                 insert_data = (
-                    data.get("lecture_name", ""),
-                    data.get("teacher", ""),
+                    lecture_name,
+                    platform_name,
+                    teacher,
                     price,
                     scope,
                     review_count,
-                    data.get("description",""),
+                    description,
                     "|".join(whatdoilearn_list),
                     "|".join(tag_list),
-                    data.get("lecture_time", ""),
-                    data.get("level", ""),
-                    data.get("lecture_id"),
-                    data.get("thumbnail_url", ""),
+                    lecture_time,
+                    level,
+                    lecture_id,
+                    thumbnail_url,
                     True,
-                    False,
-                )
+                    False
+                ) 
             mysql_hook.run(insert_query, parameters=insert_data)
             logging.info(f"{insert_query}, {insert_data}")
         elif is_recommend == False and "recommend" in json_file:
@@ -175,7 +209,6 @@ def process_s3_json_files(**context):
                 WHERE lecture_id = %s
             """
             mysql_hook.run(update_query, parameters=(True, lecture_id))
-        # logging.info(f"success : {json_content['lecture_url']} ")
         
 with DAG(
     "udemy_s3_json_file_processing",
