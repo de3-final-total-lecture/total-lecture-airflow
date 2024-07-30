@@ -147,6 +147,7 @@ class UdemyInfoToS3Operator(BaseOperator):
         logging.info(
             f"------------------- Start : {unquote(keyword)} ------------------------------"
         )
+        logging.info(search_url)
 
         search_url = "https://www.udemy.com" + course["url"]
         title = course["title"]
@@ -229,5 +230,4 @@ class UdemyInfoToS3Operator(BaseOperator):
                 "sort_type": self.sort_word,
             },
         }
-        logging.info(search_url)
         return main_json, reviews_json, hash_url
