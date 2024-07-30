@@ -76,7 +76,7 @@ def process_s3_json_files(**context):
         scope = data.get('scope', 0.0)
         review_count = data["review_count"]
         description = data["description"]
-        
+        course_id = json_content['course_id']
         whatdoilearn_list = data.get("what_do_i_learn", [])
         if isinstance(whatdoilearn_list, str):
             whatdoilearn_list = [whatdoilearn_list]
@@ -121,24 +121,9 @@ def process_s3_json_files(**context):
                 INSERT INTO Lecture_info (lecture_name, platform_name, teacher, price, scope, review_count, description, what_do_i_learn, tag, lecture_time, level, lecture_id, thumbnail_url, is_new, is_recommend)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
-            # if "RECOMMEND" in data:
-            #     insert_data = (
-            #         data.get("lecture_name", ""),
-            #         json_content.get("platform_name"),
-            #         data.get("teacher", ""),
-            #         price,
-            #         scope,
-            #         review_count,
-            #         data.get("description",""),
-            #         "|".join(whatdoilearn_list),
-            #         "|".join(tag_list),
-            #         data.get("lecture_time", ""),
-            #         data.get("level", ""),
-            #         lecture_id,
-            #         data.get("thumbnail_url", ""),
-            #         False,
-            #         True,
-            #     )
+            udemy_query = """
+                INSERT INTO Udemy (lecture_id, course_id) VALUES(%s, %s)
+            """
             if "RECOMMEND" == data['sort_type']:
                 insert_data = (
                     lecture_name,
@@ -157,24 +142,10 @@ def process_s3_json_files(**context):
                     False,
                     True
                 )
-            # elif "RECENT" in data:
-            #     insert_data = (
-            #         data.get("lecture_name", ""),
-            #         json_content.get("platform_name"),
-            #         data.get("teacher", ""),
-            #         price,
-            #         scope,
-            #         review_count,
-            #         data.get("description",""),
-            #         "|".join(whatdoilearn_list),
-            #         "|".join(tag_list),
-            #         data.get("lecture_time", ""),
-            #         data.get("level", ""),
-            #         lecture_id,
-            #         data.get("thumbnail_url", ""),
-            #         True,
-            #         False,
-            #     )
+                udemy_data = (
+                    lecture_id,
+                    course_id
+                )
             elif "RECENT" == data["sort_type"]:
                 insert_data = (
                     lecture_name,
@@ -193,9 +164,15 @@ def process_s3_json_files(**context):
                     True,
                     False
                 ) 
+                udemy_data = (
+                    lecture_id,
+                    course_id
+                )
             mysql_hook.run(insert_query, parameters=insert_data)
+            mysql_hook.run(udemy_query, parameters=udemy_data)
             logging.info(f"{insert_query}, {insert_data}")
-        elif is_recommend == False and "recommend" in json_file:
+            
+        elif is_recommend == False and "RECOMMEND" == data["sort_type"]:
             # UPDATE 쿼리 준비
             update_query = """
                 UPDATE Lecture_info
@@ -203,7 +180,7 @@ def process_s3_json_files(**context):
                 WHERE lecture_id = %s
             """
             mysql_hook.run(update_query, parameters=(True, lecture_id))
-        elif is_new == False and "recent" in json_file:
+        elif is_new == False and "RECENT" == data["sort_type"]:
             # UPDATE 쿼리 준비
             update_query = """
                 UPDATE Lecture_info
