@@ -23,7 +23,7 @@ default_args = {
 def get_all_json_files_from_s3(bucket_name, prefix=""):
     s3_hook = S3Hook(aws_conn_id='aws_s3_connection')
     keys = s3_hook.list_keys(bucket_name, prefix=prefix)
-    json_files = [key for key in keys if key.endswith(".json")]
+    json_files = [key for key in keys if key.startswith("udemy") and key.endswith(".json")]
     return json_files
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
