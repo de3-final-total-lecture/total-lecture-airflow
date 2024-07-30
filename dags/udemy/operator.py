@@ -67,6 +67,7 @@ class UdemyInfoToS3Operator(BaseOperator):
                 main_json, reviews_json, hash_url, count = self.func(
                     main_results, keyword, count
                 )
+                logging.info("됐어?")
                 main_s3_key = (
                     f"product/{self.today}/{self.sort_type}/udemy_{hash_url}.json"
                 )
