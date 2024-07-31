@@ -239,6 +239,8 @@ class UdemyInfoToS3Operator(BaseOperator):
                     "sort_type": self.sort_word,
                 },
             }
-            return main_json, reviews_json, hash_url
+            main_json_data = json.dumps(main_json, ensure_ascii=False, indent=4)
+            review_json_data = json.dumps(reviews_json, ensure_ascii=False, indent=4)
+            return main_json_data, review_json_data, hash_url
         except:
             return None, None, None
