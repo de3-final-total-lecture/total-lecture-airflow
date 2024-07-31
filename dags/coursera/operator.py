@@ -32,9 +32,7 @@ class CourseraPreInfoToS3Operator(BaseOperator):
 
     def pre_execute(self, context):
         self.s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
-        execution_date = context["execution_date"]
-        korean_time = execution_date + timedelta(hours=9)
-        self.today = korean_time.strftime("%m-%d")
+        self.today = (context["execution_date"] + timedelta(hours=9)).strftime("%m-%d")
         user_agent = "userMozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36"
         self.chrome_options = Options()
         self.chrome_options.add_argument(f"user-agent={user_agent}")
@@ -53,7 +51,7 @@ class CourseraPreInfoToS3Operator(BaseOperator):
 
         for keyword in keywords_json["keywords"]:
             for sort_value in self.sort_values:
-                logging.info(f"{keyword}_{sort_value} 크롤링 start")
+                logging.info(f"{keyword}를(을) 검색하고 {sort_value}순으로 탐색합니다.")
                 courses_info = self.crawling_course_url(keyword, sort_value)
                 for course in courses_info:
                     course_url = course["url"]
@@ -65,7 +63,6 @@ class CourseraPreInfoToS3Operator(BaseOperator):
 
     def upload_json_to_s3(self, data, bucket_name, key):
         logging.info("S3에 데이터 삽입 시작")
-        # JSON 데이터를 문자열로 변환
         json_string = json.dumps(data, ensure_ascii=False, indent=4)
 
         # S3에 JSON 파일 업로드
@@ -144,9 +141,7 @@ class CourseraInfoToS3Operator(BaseOperator):
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36",
             "Accept-Language": "ko-KR,ko",
         }
-        execution_date = context["execution_date"]
-        korean_time = execution_date + timedelta(hours=9)
-        self.today = korean_time.strftime("%m-%d")
+        self.today = (context["execution_date"] + timedelta(hours=9)).strftime("%m-%d")
 
     def execute(self, context):
         uploads = []
@@ -154,7 +149,7 @@ class CourseraInfoToS3Operator(BaseOperator):
         json_file = self.read_json_file_from_s3(self.today)
 
         count = 0
-        for id, value in json_file.items():
+        for value in json_file.values():
             count += 1
             logging.info(f"{count}번째 데이터를 처리중입니다.")
 
@@ -169,14 +164,18 @@ class CourseraInfoToS3Operator(BaseOperator):
                 parsed_data = self.parsing_course_review(lecture_url)
                 parsed_data["thumbnail_url"] = thumbnail_url
                 parsed_data["sort_type"] = sort_type
-                parsed_data["keyword"] = keyword
-                s3_key = f"{self.push_prefix}/{self.today}/{sort_type}/inflearn_{hashed_url}.json"
+                parsed_data = {
+                    "lecture_url": lecture_url,
+                    "keyword": keyword,
+                    "platform": "Coursera",
+                    "content": parsed_data,
+                }
+                s3_key = f"{self.push_prefix}/{self.today}/{sort_type}/coursera_{hashed_url}.json"
             else:
                 parsed_data = self.parsing_course_review(lecture_url)
                 s3_key = f"{self.push_prefix}/{self.today}/{hashed_url}.json"
             uploads.append({"content": parsed_data, "key": s3_key})
             time.sleep(1)
-        logging.info("S3에 데이터 삽입을 시작합니다.")
         self.upload_to_s3(uploads)
 
     @retry(
@@ -190,6 +189,8 @@ class CourseraInfoToS3Operator(BaseOperator):
         return json.loads(file_content)
 
     def upload_to_s3(self, uploads):
+        logging.info("S3에 데이터 삽입을 시작합니다.")
+
         def upload_file(data):
             self.s3_hook.load_string(
                 string_data=data["content"],

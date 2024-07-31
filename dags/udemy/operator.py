@@ -6,40 +6,47 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 import concurrent.futures
 import logging
 from datetime import timedelta
-import time
 from plugins.base62 import encoding_url
 import requests
 import json
 import logging
 from urllib.parse import unquote
 from pyudemy.udemy import UdemyAffiliate
-from airflow.models import Variable
+from custom.mysqlhook import CustomMySqlHook
+import time
 
 
 class UdemyInfoToS3Operator(BaseOperator):
     @apply_defaults
-    def __init__(self, bucket_name, pull_prefix, sort_type, *args, **kwargs):
+    def __init__(
+        self,
+        bucket_name,
+        pull_prefix,
+        sort_type,
+        client_id,
+        client_secret,
+        base_url,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.bucket_name = bucket_name
         self.pull_prefix = pull_prefix
         self.sort_type = sort_type
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.base_url = base_url
 
     def pre_execute(self, context):
         self.s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
-        execution_date = context["execution_date"]
-        korean_time = execution_date + timedelta(hours=9)
-        self.today = korean_time.strftime("%m-%d")
-        CLIENT_ID = Variable.get("Udemy_CLIENT_ID")
-        CLIENT_SECRET = Variable.get("Udemy_CLIENT_SECRET")
-        self.base_url = Variable.get("BASE_URL")
-
-        self.udemy = UdemyAffiliate(CLIENT_ID, CLIENT_SECRET)
-        self.auth = requests.auth.HTTPBasicAuth(CLIENT_ID, CLIENT_SECRET)
-        self.page_size = 100
-        self.sort_word = "RECOMMEND"
-        if self.sort_type == "newest":
-            self.page_size = 20
-            self.sort_word = "RECENT"
+        self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
+        self.today = (context["execution_date"] + timedelta(hours=9)).strftime("%m-%d")
+        self.udemy = UdemyAffiliate(self.client_id, self.client_secret)
+        self.auth = requests.auth.HTTPBasicAuth(self.client_id, self.client_secret)
+        sort_config = {"newest": ("RECENT", 20), "default": ("RECOMMEND", 100)}
+        self.sort_word, self.page_size = sort_config.get(
+            self.sort_type, sort_config["default"]
+        )
         self.review_params = {
             "page": 1,
             "page_size": 500,
@@ -48,7 +55,7 @@ class UdemyInfoToS3Operator(BaseOperator):
 
     def execute(self, context):
         keywords_json = self.get_keywords_json_file_from_s3()
-        uploads = []
+        uploads, insert_data = [], []
         for keyword in keywords_json["keywords"]:
             main_params = {
                 "search": unquote(keyword),
@@ -62,32 +69,35 @@ class UdemyInfoToS3Operator(BaseOperator):
             }
             main_results = self.udemy.courses(**main_params)
             for course in main_results["results"]:
-                main_json, reviews_json, hash_url = self.func(course, keyword)
-                if main_json is None and reviews_json is None and hash_url is None:
+                main_json, reviews_json, insert_data = self.get_detail_reviews(
+                    course, keyword, insert_data
+                )
+                if main_json is None and reviews_json is None:
                     continue
-                if self.sort_type == "newest":
-                    sort_type = "RECENT"
-                else:
-                    sort_type = "RECOMMEND"
+                sort_type = "RECENT" if self.sort_type == "newest" else "RECOMMEND"
+                hash_url = insert_data[-1][0]
                 main_s3_key = f"product/{self.today}/{sort_type}/udemy_{hash_url}.json"
                 review_s3_key = f"analytics/reviews/{self.today}/{hash_url}.json"
                 uploads.append({"content": main_json, "key": main_s3_key})
                 uploads.append({"content": reviews_json, "key": review_s3_key})
-        logging.info(uploads)
         self.upload_to_s3(uploads)
+        insert_udemy_id_query = (
+            "INSERT IGNORE INTO Udemy (lecture_id, course_id) VALUES (%s, %s)"
+        )
+        self.mysql_hook.bulk_insert(insert_udemy_id_query, insert_data)
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
-    )
+    def common_retry_decorator(func):
+        return retry(
+            stop=stop_after_attempt(3),
+            wait=wait_exponential(multiplier=1, min=4, max=10),
+        )(func)
+
+    @common_retry_decorator
     def get_keywords_json_file_from_s3(self):
         file_content = self.s3_hook.read_key(self.pull_prefix, self.bucket_name)
         return json.loads(file_content)
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
-    )
+    @common_retry_decorator
     def read_json_file_from_s3(self, today):
         file_content = self.s3_hook.read_key(
             self.pull_prefix + f"/{today}" + "/inflearn.json", self.bucket_name
@@ -150,7 +160,7 @@ class UdemyInfoToS3Operator(BaseOperator):
         response = requests.get(url, params=params).json()
         return response
 
-    def func(self, course, keyword):
+    def get_detail_reviews(self, course, keyword, insert_data):
         try:
             logging.info(
                 f"------------------- Start : {unquote(keyword)} ------------------------------"
@@ -243,6 +253,45 @@ class UdemyInfoToS3Operator(BaseOperator):
             }
             main_json_data = json.dumps(main_json, ensure_ascii=False, indent=4)
             review_json_data = json.dumps(reviews_json, ensure_ascii=False, indent=4)
-            return main_json_data, review_json_data, hash_url
+            insert_data.append((hash_url, course_id))
+            return main_json_data, review_json_data, insert_data
         except:
             return None, None, None
+
+
+class UdemyPriceOperator(BaseOperator):
+    @apply_defaults
+    def __init__(self, client_id, client_secret, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.client_id = client_id
+        self.client_secret = client_secret
+
+    def pre_execute(self, context):
+        self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
+        self.udemy = UdemyAffiliate(self.client_id, self.client_secret)
+
+    def execute(self, context):
+        insert_data = []
+        results = self.get_inflearn_id()
+        insert_data = self.get_lecture_price(results, insert_data)
+        self.load_price_history(insert_data)
+
+    def get_inflearn_id(self):
+        get_udemy_id_query = "SELECT course_id, lecture_id FROM Udemy;"
+        results = self.mysql_hook.get_records(get_udemy_id_query)
+        return results
+
+    def get_lecture_price(self, results, insert_data):
+        for row in results:
+            course_id, lecture_id = row[0], row[1]
+            detail = self.udemy.course_detail(course_id)
+            price = int(detail["price_detail"]["amount"])
+            insert_data.append((lecture_id, price))
+            time.sleep(0.5)
+        return insert_data
+
+    def load_price_history(self, insert_data):
+        insert_lecture_price_query = (
+            "INSERT INTO Lecture_price_history (lecture_id, price) VALUES (%s, %s)"
+        )
+        self.mysql_hook.bulk_insert(insert_lecture_price_query, parameters=insert_data)
