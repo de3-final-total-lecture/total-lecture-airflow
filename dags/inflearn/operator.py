@@ -1,5 +1,6 @@
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
+from custom.mysqlhook import CustomMySqlHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 import json
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -23,9 +24,7 @@ class InflearnInfoToS3Operator(BaseOperator):
 
     def pre_execute(self, context):
         self.s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
-        execution_date = context["execution_date"]
-        korean_time = execution_date + timedelta(hours=9)
-        self.today = korean_time.strftime("%m-%d")
+        self.today = (context["execution_date"] + timedelta(hours=9)).strftime("%m-%d")
 
     def execute(self, context):
         uploads = []
@@ -52,7 +51,6 @@ class InflearnInfoToS3Operator(BaseOperator):
                 s3_key = f"{self.push_prefix}/{self.today}/{hashed_url}.json"
             uploads.append({"content": parsed_data, "key": s3_key})
             time.sleep(1)
-        logging.info("S3에 데이터 삽입을 시작합니다.")
         self.upload_to_s3(uploads)
 
     @retry(
@@ -66,6 +64,8 @@ class InflearnInfoToS3Operator(BaseOperator):
         return json.loads(file_content)
 
     def upload_to_s3(self, uploads):
+        logging.info("S3에 데이터 삽입을 시작합니다.")
+
         def upload_file(data):
             self.s3_hook.load_string(
                 string_data=data["content"],
@@ -104,7 +104,7 @@ class InflearnInfoToS3Operator(BaseOperator):
         try:
             json_data = response.json()
         except:
-            logging.info(url_v1)
+            logging.info(f"{url_v1}에서 데이터 가져오기를 실패했습니다.")
 
         data = json_data["data"]
         lecture_thumbnail = data["thumbnailUrl"]
@@ -134,14 +134,15 @@ class InflearnInfoToS3Operator(BaseOperator):
         try:
             json_data = response.json()
         except:
-            logging.info(url_v2)
+            logging.info(f"{url_v2}에서 데이터 가져오기를 실패했습니다.")
 
         description = json_data["data"]["description"]
         what_do_i_learn = json_data["data"]["abilities"]
 
         data = {
-            "url": lecture_url,
+            "lecture_url": lecture_url,
             "keyword": keyword,
+            "platform_name": "Inflearn",
             "content": {
                 "lecture_id": encoding_url(lecture_url),
                 "lecture_name": lecture_name,
@@ -202,27 +203,31 @@ class InflearnPreInfoToS3Operator(BaseOperator):
 
     def pre_execute(self, context):
         self.s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
-        execution_date = context["execution_date"]
-        korean_time = execution_date + timedelta(hours=9)
-        self.today = korean_time.strftime("%m-%d")
+        self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
+        self.today = (context["execution_date"] + timedelta(hours=9)).strftime("%m-%d")
 
     def execute(self, context):
         keywords_json = self.get_keywords_json_file_from_s3()
 
-        data = {}
+        upload_data, insert_data = {}, []
 
         for keyword in keywords_json["keywords"]:
             for sort_type, count in [("RECOMMEND", 100), ("RECENT", 20)]:
-                logging.info(f"{keyword}를 검색하고 {sort_type}순으로 탐색")
+                logging.info(f"{keyword}를(을) 검색하고 {sort_type}순으로 탐색합니다.")
                 url = f"https://www.inflearn.com/courses/client/api/v1/course/search?isDiscounted=false&isNew=false&keyword={keyword}&pageNumber=1&pageSize={count}&sort={sort_type}&types=ONLINE"
-                data = self.parsing_lecture_id_url(url, sort_type, keyword, data)
+                upload_data, insert_data = self.parsing_lecture_id_url(
+                    url, sort_type, keyword, upload_data, insert_data
+                )
                 time.sleep(0.5)
         s3_key = self.push_prefix + f"/{self.today}/inflearn.json"
-        self.upload_json_to_s3(data, self.bucket_name, s3_key)
+        self.upload_json_to_s3(upload_data, self.bucket_name, s3_key)
+        insert_inflearn_id_query = (
+            "INSERT IGNORE INTO Inflearn (lecture_id, inflearn_id) VALUES (%s, %s)"
+        )
+        self.mysql_hook.bulk_insert(insert_inflearn_id_query, insert_data)
 
     def upload_json_to_s3(self, data, bucket_name, key):
         logging.info("S3에 데이터 삽입 시작")
-        # JSON 데이터를 문자열로 변환
         json_string = json.dumps(data, ensure_ascii=False, indent=4)
 
         # S3에 JSON 파일 업로드
@@ -238,24 +243,69 @@ class InflearnPreInfoToS3Operator(BaseOperator):
         file_content = self.s3_hook.read_key(self.pull_prefix, self.bucket_name)
         return json.loads(file_content)
 
-    def parsing_lecture_id_url(self, url, sort_type, keyword, data):
+    def parsing_lecture_id_url(self, url, sort_type, keyword, upload_data, insert_data):
         response = requests.get(url)
         response.raise_for_status()
         response_data = response.json()
 
         response_data = response_data["data"]
         if response_data["totalCount"] == 0:
-            return data
+            return upload_data
 
         lectures = response_data["items"]
         for lecture in lectures:
             lecture = lecture["course"]
-            lecture_id = lecture["id"]
+            inflearn_id = lecture["id"]
             slug = lecture["slug"]
             lecture_url = f"https://www.inflearn.com/course/{slug}"
-            data[lecture_id] = {
+            upload_data[inflearn_id] = {
                 "keyword": keyword,
                 "sort_type": sort_type,
                 "lecture_url": lecture_url,
             }
-        return data
+            lecture_id = encoding_url(lecture_url)
+            insert_data.append((lecture_id, inflearn_id))
+        return upload_data, insert_data
+
+
+class InflearnPriceOperator(BaseOperator):
+    @apply_defaults
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def pre_execute(self, context):
+        self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
+
+    def execute(self, context):
+        insert_data = []
+        results = self.get_inflearn_id()
+        insert_data = self.get_lecture_price(results, insert_data)
+        self.load_price_history(insert_data)
+
+    def get_inflearn_id(self):
+        get_inflearn_id_query = "SELECT inflearn_id, lecture_id FROM Inflearn"
+
+        results = self.mysql_hook.get_records(get_inflearn_id_query)
+        return results
+
+    def get_lecture_price(self, results, insert_data):
+        for row in results:
+            inflearn_id, lecture_id = row[0], row[1]
+            url = f"https://www.inflearn.com/course/client/api/v1/course/{inflearn_id}/online/info"
+            response = requests.get(url)
+            response.raise_for_status()
+            try:
+                response_data = response.json()
+            except:
+                logging.info(f"{url}에서 가격 데이터 가져오기를 실패했습니다.")
+            response_data = response_data["data"]
+            price = response_data["paymentInfo"]["payPrice"]
+            insert_data.append((lecture_id, price))
+            time.sleep(0.5)
+        return insert_data
+
+    def load_price_history(self, insert_data):
+        insert_lecture_price_query = (
+            "INSERT INTO Lecture_price_history (lecture_id, price) VALUES (%s, %s)"
+        )
+        self.mysql_hook.bulk_insert(insert_lecture_price_query, parameters=insert_data)

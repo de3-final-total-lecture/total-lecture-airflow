@@ -1,23 +1,24 @@
 from airflow.models.dag import DAG
 from airflow.operators.empty import EmptyOperator
+from airflow.models import Variable
 from airflow.utils.task_group import TaskGroup
 import pendulum
 from dags.coursera.operator import CourseraPreInfoToS3Operator, CourseraInfoToS3Operator
 from dags.inflearn.operator import InflearnPreInfoToS3Operator, InflearnInfoToS3Operator
 from dags.udemy.operator import UdemyInfoToS3Operator
+from dags.custom.s3_to_rds_operator import S3ToRDSOperator
 
 kst = pendulum.timezone("Asia/Seoul")
 
 with DAG(
-    dag_id="test_task_group",
+    dag_id="load_data_from_three_platform",
     start_date=pendulum.today(tz=kst).subtract(days=1),
-    tags=["example"],
 ) as dag:
     start = EmptyOperator(task_id="start")
 
-    # Task Group #1
     with TaskGroup(
-        "Get_lecture_pre_informations", tooltip="Tasks for downloading data"
+        "get_lecture_pre_informations",
+        tooltip="Tasks for load lecture url and id to s3",
     ) as section_1:
         load_coursera_pre_info = CourseraPreInfoToS3Operator(
             task_id="load_coursera_pre_info",
@@ -32,8 +33,9 @@ with DAG(
             push_prefix="raw_data/URL",
         )
 
-    # Task Group #2
-    with TaskGroup("Process", tooltip="Tasks for processing data") as section_2:
+    with TaskGroup(
+        "get_lecture_informations", tooltip="Tasks for load lecture informations to s3"
+    ) as section_2:
         load_coursera_lecture_info = CourseraInfoToS3Operator(
             task_id="load_coursera_lecture_info",
             bucket_name="team-jun-1-bucket",
@@ -63,12 +65,18 @@ with DAG(
             bucket_name="team-jun-1-bucket",
             pull_prefix="crawling_keyword/encoded_keyword.json",
             sort_type="most-num_reviews",
+            client_id=Variable.get("Udemy_CLIENT_ID"),
+            client_secret=Variable.get("Udemy_CLIENT_SECRET"),
+            base_url=Variable.get("BASE_URL"),
         )
         load_udemy_info_by_recent = UdemyInfoToS3Operator(
             task_id="load_udemy_info_by_recent",
             bucket_name="team-jun-1-bucket",
             pull_prefix="crawling_keyword/encoded_keyword.json",
             sort_type="newest",
+            client_id=Variable.get("Udemy_CLIENT_ID"),
+            client_secret=Variable.get("Udemy_CLIENT_SECRET"),
+            base_url=Variable.get("BASE_URL"),
         )
         [
             load_coursera_lecture_info,
@@ -78,6 +86,12 @@ with DAG(
             load_udemy_info_by_recommend,
             load_udemy_info_by_recent,
         ]
+
+    load_lecture_data_from_s3_to_rds = S3ToRDSOperator(
+        task_id="load_lecture_data_from_s3_to_rds",
+        bucket_name="team-jun-1-bucket",
+        pull_prefix="product",
+    )
 
     end = EmptyOperator(task_id="end")
 
