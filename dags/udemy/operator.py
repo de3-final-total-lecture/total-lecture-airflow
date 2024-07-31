@@ -65,9 +65,11 @@ class UdemyInfoToS3Operator(BaseOperator):
                 main_json, reviews_json, hash_url = self.func(course, keyword)
                 if main_json is None and reviews_json is None and hash_url is None:
                     continue
-                main_s3_key = (
-                    f"product/{self.today}/{self.sort_type}/udemy_{hash_url}.json"
-                )
+                if self.sort_type == "newest":
+                    sort_type = "RECENT"
+                else:
+                    sort_type = "RECOMMEND"
+                main_s3_key = f"product/{self.today}/{sort_type}/udemy_{hash_url}.json"
                 review_s3_key = f"analytics/reviews/{self.today}/{hash_url}.json"
                 uploads.append({"content": main_json, "key": main_s3_key})
                 uploads.append({"content": reviews_json, "key": review_s3_key})
