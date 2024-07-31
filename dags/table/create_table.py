@@ -114,11 +114,22 @@ with DAG(
     )
 
     create_inflearn_id_table = MySqlOperator(
-        task_id="create_inflearn_id_table",
+        task_id="create_inflearn_table",
         sql="""
-        CREATE TABLE IF NOT EXISTS Inflearn_id (
+        CREATE TABLE IF NOT EXISTS Inflearn (
             lecture_id VARCHAR(255) PRIMARY KEY,
             inflearn_id INT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );""",
+        mysql_conn_id="mysql_conn",
+    )
+
+    create_udemy_table = MySqlOperator(
+        task_id="create_udemy_table",
+        sql="""
+        CREATE TABLE IF NOT EXISTS Udemy(
+            lecture_id VARCHAR(255) PRIMARY KEY,
+            course_id INT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );""",
         mysql_conn_id="mysql_conn",
