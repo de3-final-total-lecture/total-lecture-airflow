@@ -129,7 +129,8 @@ with DAG(
         sql="""
         CREATE TABLE IF NOT EXISTS Udemy(
             course_id VARCHAR(255),
-            lecture_id VARCHAR(255)
+            lecture_id VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );""",
         mysql_conn_id="mysql_conn"
     )
