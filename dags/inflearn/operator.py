@@ -250,7 +250,7 @@ class InflearnPreInfoToS3Operator(BaseOperator):
 
         response_data = response_data["data"]
         if response_data["totalCount"] == 0:
-            return upload_data
+            return upload_data, insert_data
 
         lectures = response_data["items"]
         for lecture in lectures:
