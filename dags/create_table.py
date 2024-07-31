@@ -128,7 +128,7 @@ with DAG(
         task_id="create_udemy_table",
         sql="""
         CREATE TABLE IF NOT EXISTS Udemy(
-            course_id VARCHAR(255),
+            course_id int(255),
             lecture_id VARCHAR(255),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );""",
