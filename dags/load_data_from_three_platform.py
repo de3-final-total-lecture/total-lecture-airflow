@@ -7,6 +7,7 @@ from dags.coursera.operator import CourseraPreInfoToS3Operator, CourseraInfoToS3
 from dags.inflearn.operator import InflearnPreInfoToS3Operator, InflearnInfoToS3Operator
 from dags.udemy.operator import UdemyInfoToS3Operator
 from dags.custom.s3_to_rds_operator import S3ToRDSOperator
+from datetime import timedelta
 
 kst = pendulum.timezone("Asia/Seoul")
 
@@ -25,6 +26,8 @@ with DAG(
             bucket_name="team-jun-1-bucket",
             pull_prefix="crawling_keyword/encoded_keyword.json",
             push_prefix="raw_data/URL",
+            retries=3,
+            retry_delay=timedelta(minutes=5),
         )
         load_inlearn_pre_info = InflearnPreInfoToS3Operator(
             task_id="load_inlearn_pre_info",

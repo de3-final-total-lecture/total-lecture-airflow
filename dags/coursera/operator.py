@@ -160,10 +160,9 @@ class CourseraInfoToS3Operator(BaseOperator):
                 value["keyword"],
             )
             hashed_url = encoding_url(lecture_url)
-            if self.push_prefix == "product/test":
+            if self.push_prefix == "product":
                 parsed_data = self.parsing_course_review(lecture_url)
                 parsed_data["thumbnail_url"] = thumbnail_url
-                parsed_data["sort_type"] = sort_type
                 parsed_data = {
                     "lecture_url": lecture_url,
                     "keyword": keyword,
