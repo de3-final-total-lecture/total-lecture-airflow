@@ -248,7 +248,6 @@ class UdemyInfoToS3Operator(BaseOperator):
                     "review_count": review_cnt,
                     "lecture_time": lecture_time,
                     "thumbnail_url": img_url,
-                    "sort_type": self.sort_word,
                 },
             }
             main_json_data = json.dumps(main_json, ensure_ascii=False, indent=4)
