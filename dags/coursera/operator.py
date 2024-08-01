@@ -169,6 +169,7 @@ class CourseraInfoToS3Operator(BaseOperator):
                     "platform": "Coursera",
                     "content": parsed_data,
                 }
+                parsed_data = json.dumps(parsed_data, ensure_ascii=False, indent=4)
                 s3_key = f"{self.push_prefix}/{self.today}/{sort_type}/coursera_{hashed_url}.json"
             else:
                 parsed_data = self.parsing_course_review(lecture_url)
