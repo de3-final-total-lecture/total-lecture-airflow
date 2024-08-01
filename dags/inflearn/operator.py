@@ -158,7 +158,6 @@ class InflearnInfoToS3Operator(BaseOperator):
                     lecture_time
                 ),
                 "thumbnail_url": lecture_thumbnail,
-                "sort_type": sort_type,
             },
             "main_category": main_category,
             "mid_category": mid_category,
