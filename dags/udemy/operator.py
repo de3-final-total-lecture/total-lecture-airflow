@@ -80,6 +80,9 @@ class UdemyInfoToS3Operator(BaseOperator):
                 review_s3_key = f"analytics/reviews/{self.today}/{hash_url}.json"
                 uploads.append({"content": main_json, "key": main_s3_key})
                 uploads.append({"content": reviews_json, "key": review_s3_key})
+            logging.info(
+                f"{keyword}로 강의 정보와 리뷰를 탐색한 결과 누적된 uploads의 길이: {len(uploads)}"
+            )
         self.upload_to_s3(uploads)
         insert_udemy_id_query = (
             "INSERT IGNORE INTO Udemy (lecture_id, course_id) VALUES (%s, %s)"
