@@ -1,4 +1,5 @@
 from airflow.models.dag import DAG
+from airflow.providers.amazon.aws.operators.glue import GlueJobOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.models import Variable
 from airflow.utils.task_group import TaskGroup
@@ -90,12 +91,24 @@ with DAG(
             load_udemy_info_by_recent,
         ]
 
-    load_lecture_data_from_s3_to_rds = S3ToRDSOperator(
-        task_id="load_lecture_data_from_s3_to_rds",
-        bucket_name="team-jun-1-bucket",
-        pull_prefix="product",
-    )
+    with TaskGroup(
+        "load_lecture_data_into_rds",
+        tooltip="Tasks for transform json file to csv. And load data in RDS table.",
+    ) as section_3:
+        run_glue_job = GlueJobOperator(
+            task_id="run_glue_job",
+            job_name="jun-1-s3-to-rds",
+            region_name="ap-northeast-2",
+            iam_role_name="jun-1-glue-role",
+        )
+        load_lecture_data_from_s3_to_rds = S3ToRDSOperator(
+            task_id="load_lecture_data_from_csv_to_rds",
+            bucket_name="team-jun-1-bucket",
+            pull_prefix="product",
+            push_table="Lecture_info",
+        )
+        run_glue_job >> load_lecture_data_from_s3_to_rds
 
     end = EmptyOperator(task_id="end")
 
-    start >> section_1 >> section_2 >> load_lecture_data_from_s3_to_rds >> end
+    start >> section_1 >> section_2 >> section_3 >> end
