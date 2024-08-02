@@ -44,7 +44,6 @@ class S3ToRDSOperator(BaseOperator):
                     if not os.path.isdir("/tmp"):
                         raise NotADirectoryError("/tmp is not a directory")
                     # 임시 파일을 생성합니다.
-                    logging.info(tmp_file)
                     with tempfile.NamedTemporaryFile(
                         delete=False, dir="/tmp"
                     ) as tmp_file:
