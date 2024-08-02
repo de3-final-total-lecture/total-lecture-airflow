@@ -246,14 +246,16 @@ class UdemyInfoToS3Operator(BaseOperator):
                     "thumbnail_url": img_url,
                 },
             }
+            if main_json is not None:
+                logging.info(f"{keyword}로 검색한 결과, {search_url}강의가 반환됩니다.")
+            if reviews_json is not None:
+                logging.info(f"{keyword}로 검색한 결과, {search_url}강의가 반환됩니다.")
             main_json_data = json.dumps(main_json, ensure_ascii=False, indent=4)
-            logging.info(f"{keyword}로 검색한 결과, {search_url}강의가 반환됩니다.")
             review_json_data = json.dumps(reviews_json, ensure_ascii=False, indent=4)
-            logging.info(f"{keyword}로 검색한 결과, {search_url}리뷰가 반환됩니다.")
             insert_data.append((hash_url, course_id))
             return main_json_data, review_json_data, insert_data
         except:
-            return None, None, None
+            return None, None, insert_data
 
 
 class UdemyPriceOperator(BaseOperator):
