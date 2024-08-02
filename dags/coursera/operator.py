@@ -166,7 +166,7 @@ class CourseraInfoToS3Operator(BaseOperator):
                 parsed_data = {
                     "lecture_url": lecture_url,
                     "keyword": keyword,
-                    "platform": "Coursera",
+                    "platform_name": "Coursera",
                     "content": parsed_data,
                 }
                 parsed_data = json.dumps(parsed_data, ensure_ascii=False, indent=4)

@@ -4,6 +4,9 @@ from custom.mysqlhook import CustomMySqlHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from datetime import timedelta
 import logging
+import tempfile
+import os
+import pandas as pd
 
 
 class S3ToRDSOperator(BaseOperator):
@@ -21,13 +24,19 @@ class S3ToRDSOperator(BaseOperator):
 
     def execute(self, context):
         # S3에서 CSV 파일 다운로드
-        prefix = self.pull_prefix + f"/{self.today}/lecture_info"
+        prefix = self.pull_prefix + f"/{self.today}/lecture_info/"
         logging.info("S3에서 CSV 파일을 가져옵니다.")
         files = self.s3_hook.list_keys(bucket_name=self.bucket_name, prefix=prefix)
-        if not files:
-            raise ValueError("No files found in S3")
-        lecture_info_file = max(files)
 
         # MySQL에 CSV 로드
         logging.info("CSV 파일을 RDS에 벌크 로드합니다.")
-        self.mysql_hook.bulk_load(self.push_table, lecture_info_file)
+        for file_key in files:
+            if file_key.endswith(".csv"):
+                with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                    self.s3_hook.download_file(
+                        bucket_name=self.bucket_name,
+                        key=file_key,
+                        local_path=tmp_file.name,
+                    )
+                    self.mysql_hook.bulk_load(self.push_table, tmp_file.name)
+                os.remove(tmp_file.name)
