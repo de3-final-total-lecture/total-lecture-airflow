@@ -30,16 +30,26 @@ class S3ToRDSOperator(BaseOperator):
 
         # MySQL에 CSV 로드
         logging.info("CSV 파일을 RDS에 벌크 로드합니다.")
-        for file_key in files:
-            if file_key.endswith(".csv"):
-                fd, tmp_path = tempfile.mkstemp()
-                try:
-                    os.close(fd)
-                    self.s3_hook.download_file(
-                        bucket_name=self.bucket_name,
-                        key=file_key,
-                        local_path=tmp_path,
-                    )
-                    self.mysql_hook.bulk_load(self.push_table, tmp_path)
-                finally:
-                    os.remove(tmp_path)
+        try:
+            for file_key in files:
+                if file_key.endswith(".csv"):
+                    # 임시 파일을 생성합니다.
+                    with tempfile.NamedTemporaryFile(
+                        delete=False, dir="/tmp"
+                    ) as tmp_file:
+                        # S3에서 임시 파일로 다운로드합니다.
+                        self.s3_hook.download_file(
+                            bucket_name=self.bucket_name,
+                            key=file_key,
+                            local_path=tmp_file.name,
+                        )
+
+                        # MySQL에 데이터를 벌크 로드합니다.
+                        self.mysql_hook.bulk_load(self.push_table, tmp_file.name)
+
+                    # 임시 파일을 삭제합니다.
+                    os.remove(tmp_file.name)
+
+        except Exception as e:
+            self.log.error(f"An error occurred: {e}")
+            raise
