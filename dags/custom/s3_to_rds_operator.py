@@ -6,7 +6,6 @@ from datetime import timedelta
 import logging
 import tempfile
 import os
-import pandas as pd
 
 
 class S3ToRDSOperator(BaseOperator):
@@ -39,6 +38,12 @@ class S3ToRDSOperator(BaseOperator):
 
             for file_key in files:
                 if file_key.endswith(".csv"):
+                    # /tmp 디렉토리가 존재하는지 확인하고, 없으면 생성합니다.
+                    if not os.path.exists("/tmp"):
+                        os.makedirs("/tmp")
+                    if not os.path.isdir("/tmp"):
+                        raise NotADirectoryError("/tmp is not a directory")
+
                     # 임시 파일을 생성합니다.
                     with tempfile.NamedTemporaryFile(
                         delete=False, dir="/tmp"
