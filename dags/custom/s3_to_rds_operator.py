@@ -42,15 +42,16 @@ class S3ToRDSOperator(BaseOperator):
                 # 임시 파일을 생성합니다.
                 try:
                     with tempfile.NamedTemporaryFile(
-                        delete=False, dir=tmp_dir, suffix=".csv"
+                        delete=True, dir=tmp_dir, suffix=".csv"
                     ) as tmp_file:
+                        logging.info(tmp_file.name)
                         tmp_file_path = tmp_file.name  # 파일 경로를 저장합니다.
                         # S3에서 임시 파일로 다운로드합니다.
                         logging.info(f"S3에서 {file_key} 파일을 다운로드합니다.")
                         self.s3_hook.download_file(
                             bucket_name=self.bucket_name,
                             key=file_key,
-                            local_path=tmp_file_path,
+                            local_path="/tmp/",
                         )
                         # MySQL에 데이터를 벌크 로드합니다.
                         logging.info(f"파일 {tmp_file_path}을 MySQL에 벌크 로드합니다.")
