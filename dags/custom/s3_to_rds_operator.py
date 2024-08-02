@@ -24,32 +24,45 @@ class S3ToRDSOperator(BaseOperator):
 
     def execute(self, context):
         # S3에서 CSV 파일 다운로드
-        prefix = self.pull_prefix + f"/{self.today}/lecture_info/"
-        logging.info("S3에서 CSV 파일을 가져옵니다.")
-        files = self.s3_hook.list_keys(bucket_name=self.bucket_name, prefix=prefix)
+        prefix = f"{self.pull_prefix}/{self.today}/lecture_info/"
+        logging.info(f"S3에서 {prefix} 경로의 CSV 파일을 가져옵니다.")
 
-        # MySQL에 CSV 로드
-        logging.info("CSV 파일을 RDS에 벌크 로드합니다.")
         try:
+            files = self.s3_hook.list_keys(bucket_name=self.bucket_name, prefix=prefix)
+
+            if not files:
+                logging.warning("다운로드할 파일이 없습니다.")
+                return
+
+            # MySQL에 CSV 로드
+            logging.info("CSV 파일을 RDS에 벌크 로드합니다.")
+
             for file_key in files:
                 if file_key.endswith(".csv"):
                     # 임시 파일을 생성합니다.
                     with tempfile.NamedTemporaryFile(
                         delete=False, dir="/tmp"
                     ) as tmp_file:
-                        # S3에서 임시 파일로 다운로드합니다.
-                        self.s3_hook.download_file(
-                            bucket_name=self.bucket_name,
-                            key=file_key,
-                            local_path=tmp_file.name,
-                        )
+                        try:
+                            # S3에서 임시 파일로 다운로드합니다.
+                            logging.info(f"S3에서 {file_key} 파일을 다운로드합니다.")
+                            self.s3_hook.download_file(
+                                bucket_name=self.bucket_name,
+                                key=file_key,
+                                local_path=tmp_file.name,
+                            )
 
-                        # MySQL에 데이터를 벌크 로드합니다.
-                        self.mysql_hook.bulk_load(self.push_table, tmp_file.name)
-
-                    # 임시 파일을 삭제합니다.
-                    os.remove(tmp_file.name)
+                            # MySQL에 데이터를 벌크 로드합니다.
+                            logging.info(
+                                f"파일 {tmp_file.name}을 MySQL에 벌크 로드합니다."
+                            )
+                            self.mysql_hook.bulk_load(self.push_table, tmp_file.name)
+                        finally:
+                            # 임시 파일 삭제
+                            if os.path.exists(tmp_file.name):
+                                logging.info(f"임시 파일 {tmp_file.name}을 삭제합니다.")
+                                os.remove(tmp_file.name)
 
         except Exception as e:
-            self.log.error(f"An error occurred: {e}")
+            self.log.error(f"오류가 발생했습니다: {e}")
             raise
