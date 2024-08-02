@@ -32,7 +32,7 @@ class S3ToRDSOperator(BaseOperator):
         logging.info("CSV 파일을 RDS에 벌크 로드합니다.")
         for file_key in files:
             if file_key.endswith(".csv"):
-                with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                with tempfile.NamedTemporaryFile(delete=False, dir="/tmp") as tmp_file:
                     self.s3_hook.download_file(
                         bucket_name=self.bucket_name,
                         key=file_key,
