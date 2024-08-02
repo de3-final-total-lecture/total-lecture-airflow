@@ -43,11 +43,12 @@ class S3ToRDSOperator(BaseOperator):
                         os.makedirs("/tmp")
                     if not os.path.isdir("/tmp"):
                         raise NotADirectoryError("/tmp is not a directory")
-
                     # 임시 파일을 생성합니다.
+                    logging.info(tmp_file)
                     with tempfile.NamedTemporaryFile(
                         delete=False, dir="/tmp"
                     ) as tmp_file:
+                        logging.info(tmp_file.name)
                         # S3에서 임시 파일로 다운로드합니다.
                         logging.info(f"S3에서 {file_key} 파일을 다운로드합니다.")
                         self.s3_hook.download_file(
