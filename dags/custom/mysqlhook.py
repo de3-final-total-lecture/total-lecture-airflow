@@ -34,6 +34,7 @@ class CustomMySqlHook(MySqlHook):
         """Loads a file into a database table with the specified delimiter"""
         conn = self.get_conn()
         cur = conn.cursor()
+        cur.execute("SET GLOBAL local_infile = 1")
         cur.execute(
             """
             LOAD DATA LOCAL INFILE '{tmp_file}'
