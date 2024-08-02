@@ -5,9 +5,14 @@ from airflow.models import Variable
 from airflow.utils.task_group import TaskGroup
 import pendulum
 from dags.coursera.operator import CourseraPreInfoToS3Operator, CourseraInfoToS3Operator
-from dags.inflearn.operator import InflearnPreInfoToS3Operator, InflearnInfoToS3Operator
+from dags.inflearn.operator import (
+    InflearnPreInfoToS3Operator,
+    InflearnInfoToS3Operator,
+    InflearnCategoryConnectionOperator,
+)
 from dags.udemy.operator import UdemyInfoToS3Operator
 from dags.custom.s3_to_rds_operator import S3ToRDSOperator
+from dags.openai.operator import OpenAICategoryConnectionOperator
 from datetime import timedelta
 
 kst = pendulum.timezone("Asia/Seoul")
@@ -109,6 +114,26 @@ with DAG(
         )
         run_glue_job >> load_lecture_data_from_s3_to_rds
 
+    with TaskGroup(
+        "create_lecture_category_connections",
+        tooltip="Tasks for create lecture category connections from three platform",
+    ) as section_4:
+        create_inflearn_category_conn = InflearnCategoryConnectionOperator(
+            task_id="create_inflearn_category_conn",
+            bucket_name="team-jun-1-bucket",
+            pull_prefix="product",
+            push_table="Category_conn",
+        )
+
+        create_udemy_coursera_category_conn_by_open_ai = (
+            OpenAICategoryConnectionOperator(
+                task_id="create_udemy_coursera_category_conn_by_open_ai",
+                bucket_name="team-jun-1-bucket",
+                pull_prefix="product",
+                push_table="Category_conn",
+            )
+        )
+
     end = EmptyOperator(task_id="end")
 
-    start >> section_1 >> section_2 >> section_3 >> end
+    start >> section_1 >> section_2 >> section_3 >> section_4 >> end
