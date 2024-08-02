@@ -32,11 +32,14 @@ class S3ToRDSOperator(BaseOperator):
         logging.info("CSV 파일을 RDS에 벌크 로드합니다.")
         for file_key in files:
             if file_key.endswith(".csv"):
-                with tempfile.NamedTemporaryFile(delete=False, dir="/tmp") as tmp_file:
+                fd, tmp_path = tempfile.mkstemp()
+                try:
+                    os.close(fd)
                     self.s3_hook.download_file(
                         bucket_name=self.bucket_name,
                         key=file_key,
-                        local_path=tmp_file.name,
+                        local_path=tmp_path,
                     )
-                    self.mysql_hook.bulk_load(self.push_table, tmp_file.name)
-                os.remove(tmp_file.name)
+                    self.mysql_hook.bulk_load(self.push_table, tmp_path)
+                finally:
+                    os.remove(tmp_path)
