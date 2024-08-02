@@ -19,7 +19,7 @@ class S3ToRDSOperator(BaseOperator):
     def pre_execute(self, context):
         self.s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
         self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
-        self.today = (context["execution_date"] - timedelta(hours=9)).strftime("%m-%d")
+        self.today = (context["execution_date"]).strftime("%m-%d")
 
     def execute(self, context):
         # S3에서 CSV 파일 다운로드
