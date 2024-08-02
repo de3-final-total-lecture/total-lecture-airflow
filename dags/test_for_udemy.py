@@ -28,10 +28,7 @@ with DAG(
             pull_prefix="crawling_keyword/encoded_keyword.json",
             sort_type="newest",
         )
-        [
-            load_udemy_info_by_recommend,
-            load_udemy_info_by_recent,
-        ]
+        load_udemy_info_by_recent >> load_udemy_info_by_recommend
 
     end = EmptyOperator(task_id="end")
 
