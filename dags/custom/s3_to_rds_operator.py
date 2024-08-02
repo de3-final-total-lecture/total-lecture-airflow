@@ -38,15 +38,8 @@ class S3ToRDSOperator(BaseOperator):
 
             for file_key in files:
                 if file_key.endswith(".csv"):
-                    # /tmp 디렉토리가 존재하는지 확인하고, 없으면 생성합니다.
-                    if not os.path.exists("/tmp"):
-                        os.makedirs("/tmp")
-                    if not os.path.isdir("/tmp"):
-                        raise NotADirectoryError("/tmp is not a directory")
                     # 임시 파일을 생성합니다.
-                    with tempfile.NamedTemporaryFile(
-                        delete=False, dir="/tmp"
-                    ) as tmp_file:
+                    with tempfile.NamedTemporaryFile(dir="/tmp") as tmp_file:
                         logging.info(tmp_file.name)
                         # S3에서 임시 파일로 다운로드합니다.
                         logging.info(f"S3에서 {file_key} 파일을 다운로드합니다.")
