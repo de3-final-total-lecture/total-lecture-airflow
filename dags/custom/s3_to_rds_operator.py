@@ -48,25 +48,17 @@ class S3ToRDSOperator(BaseOperator):
                     with tempfile.NamedTemporaryFile(
                         delete=False, dir="/tmp"
                     ) as tmp_file:
-                        try:
-                            # S3에서 임시 파일로 다운로드합니다.
-                            logging.info(f"S3에서 {file_key} 파일을 다운로드합니다.")
-                            self.s3_hook.download_file(
-                                bucket_name=self.bucket_name,
-                                key=file_key,
-                                local_path=tmp_file.name,
-                            )
+                        # S3에서 임시 파일로 다운로드합니다.
+                        logging.info(f"S3에서 {file_key} 파일을 다운로드합니다.")
+                        self.s3_hook.download_file(
+                            bucket_name=self.bucket_name,
+                            key=file_key,
+                            local_path=tmp_file.name,
+                        )
 
-                            # MySQL에 데이터를 벌크 로드합니다.
-                            logging.info(
-                                f"파일 {tmp_file.name}을 MySQL에 벌크 로드합니다."
-                            )
-                            self.mysql_hook.bulk_load(self.push_table, tmp_file.name)
-                        finally:
-                            # 임시 파일 삭제
-                            if os.path.exists(tmp_file.name):
-                                logging.info(f"임시 파일 {tmp_file.name}을 삭제합니다.")
-                                os.remove(tmp_file.name)
+                        # MySQL에 데이터를 벌크 로드합니다.
+                        logging.info(f"파일 {tmp_file.name}을 MySQL에 벌크 로드합니다.")
+                        self.mysql_hook.bulk_load(self.push_table, tmp_file.name)
 
         except Exception as e:
             self.log.error(f"오류가 발생했습니다: {e}")
