@@ -60,6 +60,7 @@ class S3ToRDSOperator(BaseOperator):
                         self.mysql_hook.bulk_load(
                             self.push_table,
                             "tmp/part-00000-c7b33c13-7c61-486b-baa1-5efe60d8340b-c000.csv",
+                            ";",
                         )
                 except Exception as e:
                     logging.error(f"파일 처리 중 오류 발생: {e}")
