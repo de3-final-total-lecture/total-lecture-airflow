@@ -32,11 +32,16 @@ class S3ToRDSOperator(BaseOperator):
             logging.warning("다운로드할 파일이 없습니다.")
             return
 
-        for file_key in files:
-            if file_key.endswith(".csv"):
-                logging.info(file_key)
-                self.s3_hook.download_file(
-                    bucket_name=self.bucket_name,
-                    key=file_key,
-                    local_path="/tmp/temp",
-                )
+        for file in files:
+            if file.endswith(".csv"):
+                with tempfile.NamedTemporaryFile(mode="wb", suffix=".csv") as temp_file:
+                    # 2. 각 파일을 로컬에 다운로드
+                    self.s3_hook.get_key(file, self.bucket_name).download_fileobj(
+                        temp_file
+                    )
+                    temp_file.flush()
+
+                    # 3. MySQL bulk load 메서드를 사용하여 데이터 삽입
+                    self.mysql_hook.bulk_load(self.push_table, temp_file.name)
+
+                logging.info(f"File {file} loaded into {self.push_table}")
