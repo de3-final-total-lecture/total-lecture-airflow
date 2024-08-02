@@ -74,18 +74,12 @@ with DAG(
             bucket_name="team-jun-1-bucket",
             pull_prefix="crawling_keyword/encoded_keyword.json",
             sort_type="most-num_reviews",
-            client_id=Variable.get("Udemy_CLIENT_ID"),
-            client_secret=Variable.get("Udemy_CLIENT_SECRET"),
-            base_url=Variable.get("BASE_URL"),
         )
         load_udemy_info_by_recent = UdemyInfoToS3Operator(
             task_id="load_udemy_info_by_recent",
             bucket_name="team-jun-1-bucket",
             pull_prefix="crawling_keyword/encoded_keyword.json",
             sort_type="newest",
-            client_id=Variable.get("Udemy_CLIENT_ID"),
-            client_secret=Variable.get("Udemy_CLIENT_SECRET"),
-            base_url=Variable.get("BASE_URL"),
         )
         [
             load_coursera_lecture_info,
@@ -105,6 +99,7 @@ with DAG(
             job_name="jun-1-s3-to-rds",
             region_name="ap-northeast-2",
             iam_role_name="jun-1-glue-role",
+            aws_conn_id="aws_s3_connection",
         )
         load_lecture_data_from_s3_to_rds = S3ToRDSOperator(
             task_id="load_lecture_data_from_csv_to_rds",
