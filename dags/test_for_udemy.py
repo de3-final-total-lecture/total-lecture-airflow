@@ -21,18 +21,12 @@ with DAG(
             bucket_name="team-jun-1-bucket",
             pull_prefix="crawling_keyword/encoded_keyword.json",
             sort_type="most-num_reviews",
-            client_id=Variable.get("Udemy_CLIENT_ID"),
-            client_secret=Variable.get("Udemy_CLIENT_SECRET"),
-            base_url=Variable.get("BASE_URL"),
         )
         load_udemy_info_by_recent = UdemyInfoToS3Operator(
             task_id="load_udemy_info_by_recent",
             bucket_name="team-jun-1-bucket",
             pull_prefix="crawling_keyword/encoded_keyword.json",
             sort_type="newest",
-            client_id=Variable.get("Udemy_CLIENT_ID"),
-            client_secret=Variable.get("Udemy_CLIENT_SECRET"),
-            base_url=Variable.get("BASE_URL"),
         )
         [
             load_udemy_info_by_recommend,

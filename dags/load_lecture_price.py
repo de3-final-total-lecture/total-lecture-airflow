@@ -29,8 +29,6 @@ with DAG(
 
     get_udemy_lecture_price = UdemyPriceOperator(
         task_id="get_udemy_lecture_price",
-        client_id=Variable.get("Udemy_CLIENT_ID"),
-        client_secret=Variable.get("Udemy_CLIENT_SECRET"),
     )
 
     [get_inflearn_lecture_price, get_udemy_lecture_price]
