@@ -308,3 +308,74 @@ class InflearnPriceOperator(BaseOperator):
             "INSERT INTO Lecture_price_history (lecture_id, price) VALUES (%s, %s)"
         )
         self.mysql_hook.bulk_insert(insert_lecture_price_query, parameters=insert_data)
+
+
+class InflearnCategoryConnectionOperator(BaseOperator):
+    @apply_defaults
+    def __init__(self, bucket_name, pull_prefix, push_table, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.bucket_name = bucket_name
+        self.pull_prefix = pull_prefix
+        self.push_table = push_table
+
+    def pre_execute(self, context):
+        self.s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
+        self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
+        self.today = (context["execution_date"] + timedelta(hours=9)).strftime("%m-%d")
+
+    def execute(self, context):
+        uploads = []
+        # 모든 JSON 파일 목록 가져오기
+        json_files = self.get_all_json_files_from_s3(self.bucket_name, self.pull_prefix)
+        uploads = self.create_category_conn_data(json_files, uploads)
+        insert_category_conn_query = f"INSERT IGNORE INTO {self.push_table} (lecture_id, category_id) VALUES (%s, %s)"
+        logging.info("RDS에 카테고리 커넥션 데이터 삽입 시작")
+        self.mysql_hook.bulk_insert(insert_category_conn_query, uploads)
+
+    def get_all_json_files_from_s3(self, bucket_name, prefix=""):
+        prefix = prefix + f"/{self.today}"
+        keys = self.s3_hook.list_keys(bucket_name, prefix=prefix)
+        json_files = [key for key in keys if key.endswith(".json")]
+        return json_files
+
+    @retry(
+        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
+    )
+    def read_json_file_from_s3(self, bucket_name, key):
+        if "inflearn" not in key:
+            return None
+
+        content = self.s3_hook.read_key(key, bucket_name)
+        return json.loads(content)
+
+    def create_category_conn_data(self, json_files, uploads):
+        get_etc_category_id_query = (
+            "SELECT category_id FROM Category WHERE main_category_name = %s"
+        )
+        etc_category_id = self.mysql_hook.get_first(
+            get_etc_category_id_query, parameters=("기타",)
+        )[0]
+        # 각 JSON 파일 읽기 및 처리
+        for json_file in json_files:
+            json_content = self.read_json_file_from_s3(self.bucket_name, json_file)
+            if json_content is None:
+                continue
+
+            data = json_content["content"]
+            lecture_id = data["lecture_id"]
+            main_category, mid_category = (
+                json_content["main_category"],
+                json_content["mid_category"],
+            )
+
+            get_categories_query = "SELECT category_id FROM Category WHERE main_category_name = %s and mid_category_name = %s;"
+            # 쿼리 실행 및 결과 가져오기
+            category_id = self.mysql_hook.get_first(
+                get_categories_query, parameters=(main_category, mid_category)
+            )
+            if category_id is None:
+                uploads.append((lecture_id, etc_category_id))
+            else:
+                category_id = category_id[0]
+                uploads.append((lecture_id, category_id))
+        return uploads
