@@ -18,7 +18,7 @@ from datetime import timedelta
 kst = pendulum.timezone("Asia/Seoul")
 
 with DAG(
-    dag_id="load_data_from_three_platform",
+    dag_id="test_s3_to_rds",
     start_date=pendulum.today(tz=kst).subtract(days=1),
 ) as dag:
     start = EmptyOperator(task_id="start")
