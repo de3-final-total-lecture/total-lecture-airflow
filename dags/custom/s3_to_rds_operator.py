@@ -38,21 +38,21 @@ class S3ToRDSOperator(BaseOperator):
 
             for file_key in files:
                 if file_key.endswith(".csv"):
+                    # /tmp 디렉토리가 존재하는지 확인하고, 없으면 생성합니다.
+                    tmp_dir = "/tmp"
                     # 임시 파일을 생성합니다.
-                    with tempfile.NamedTemporaryFile(dir="/tmp") as tmp_file:
-                        logging.info(tmp_file.name)
-                        # S3에서 임시 파일로 다운로드합니다.
-                        logging.info(f"S3에서 {file_key} 파일을 다운로드합니다.")
-                        self.s3_hook.download_file(
-                            bucket_name=self.bucket_name,
-                            key=file_key,
-                            local_path=tmp_file.name,
-                        )
-
-                        # MySQL에 데이터를 벌크 로드합니다.
-                        logging.info(f"파일 {tmp_file.name}을 MySQL에 벌크 로드합니다.")
-                        self.mysql_hook.bulk_load(self.push_table, tmp_file.name)
-
-        except Exception as e:
-            self.log.error(f"오류가 발생했습니다: {e}")
-            raise
+                    try:
+                        with tempfile.NamedTemporaryFile(delete=False, dir=tmp_dir, suffix=".csv") as tmp_file:
+                            tmp_file_path = tmp_file.name  # 파일 경로를 저장합니다.
+                            # S3에서 임시 파일로 다운로드합니다.
+                            logging.info(f"S3에서 {file_key} 파일을 다운로드합니다.")
+                            self.s3_hook.download_file(
+                                bucket_name=self.bucket_name,
+                                key=file_key,
+                                local_path=tmp_file_path,
+                            )
+                            # MySQL에 데이터를 벌크 로드합니다.
+                            logging.info(f"파일 {tmp_file_path}을 MySQL에 벌크 로드합니다.")
+                            self.mysql_hook.bulk_load(self.push_table, tmp_file_path)
+                    except Exception as e:
+                        logging.error(f"파일 처리 중 오류 발생: {e}")
