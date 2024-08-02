@@ -14,6 +14,7 @@ from urllib.parse import unquote
 from pyudemy.udemy import UdemyAffiliate
 from custom.mysqlhook import CustomMySqlHook
 import time
+from airflow.models import Variable
 
 
 class UdemyInfoToS3Operator(BaseOperator):
@@ -23,9 +24,6 @@ class UdemyInfoToS3Operator(BaseOperator):
         bucket_name,
         pull_prefix,
         sort_type,
-        client_id,
-        client_secret,
-        base_url,
         *args,
         **kwargs,
     ):
@@ -33,14 +31,14 @@ class UdemyInfoToS3Operator(BaseOperator):
         self.bucket_name = bucket_name
         self.pull_prefix = pull_prefix
         self.sort_type = sort_type
-        self.client_id = client_id
-        self.client_secret = client_secret
-        self.base_url = base_url
 
     def pre_execute(self, context):
         self.s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
         self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
         self.today = (context["execution_date"] + timedelta(hours=9)).strftime("%m-%d")
+        self.client_id = Variable.get("Udemy_CLIENT_ID")
+        self.client_secret = Variable.get("Udemy_CLIENT_SECRET")
+        self.base_url = Variable.get("BASE_URL")
         self.udemy = UdemyAffiliate(self.client_id, self.client_secret)
         self.auth = requests.auth.HTTPBasicAuth(self.client_id, self.client_secret)
         sort_config = {"newest": ("RECENT", 20), "default": ("RECOMMEND", 100)}
@@ -79,10 +77,10 @@ class UdemyInfoToS3Operator(BaseOperator):
                 main_s3_key = f"product/{self.today}/{sort_type}/udemy_{hash_url}.json"
                 review_s3_key = f"analytics/reviews/{self.today}/{hash_url}.json"
                 uploads.append({"content": main_json, "key": main_s3_key})
+                logging.info("강의 내용이 uploads에 저장됩니다.")
                 uploads.append({"content": reviews_json, "key": review_s3_key})
-            logging.info(
-                f"{keyword}로 강의 정보와 리뷰를 탐색한 결과 누적된 uploads의 길이: {len(uploads)}"
-            )
+                logging.info("강의 리뷰가 uploads에 저장됩니다.")
+        logging.info(len(uploads))
         self.upload_to_s3(uploads)
         insert_udemy_id_query = (
             "INSERT IGNORE INTO Udemy (lecture_id, course_id) VALUES (%s, %s)"
@@ -165,12 +163,7 @@ class UdemyInfoToS3Operator(BaseOperator):
 
     def get_detail_reviews(self, course, keyword, insert_data):
         try:
-            logging.info(
-                f"------------------- Start : {unquote(keyword)} ------------------------------"
-            )
-
             search_url = "https://www.udemy.com" + course["url"]
-            logging.info(search_url)
             title = course["title"]
 
             price = int(course["price_detail"]["amount"])
@@ -254,7 +247,9 @@ class UdemyInfoToS3Operator(BaseOperator):
                 },
             }
             main_json_data = json.dumps(main_json, ensure_ascii=False, indent=4)
+            logging.info(f"{keyword}로 검색한 결과, {search_url}강의가 반환됩니다.")
             review_json_data = json.dumps(reviews_json, ensure_ascii=False, indent=4)
+            logging.info(f"{keyword}로 검색한 결과, {search_url}리뷰가 반환됩니다.")
             insert_data.append((hash_url, course_id))
             return main_json_data, review_json_data, insert_data
         except:
@@ -263,14 +258,14 @@ class UdemyInfoToS3Operator(BaseOperator):
 
 class UdemyPriceOperator(BaseOperator):
     @apply_defaults
-    def __init__(self, client_id, client_secret, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.client_id = client_id
-        self.client_secret = client_secret
 
     def pre_execute(self, context):
         self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
         self.udemy = UdemyAffiliate(self.client_id, self.client_secret)
+        self.client_id = Variable.get("Udemy_CLIENT_ID")
+        self.client_secret = Variable.get("Udemy_CLIENT_SECRET")
 
     def execute(self, context):
         insert_data = []
