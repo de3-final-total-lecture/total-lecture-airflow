@@ -42,6 +42,6 @@ class S3ToRDSOperator(BaseOperator):
                     temp_file.flush()
 
                     # 3. MySQL bulk load 메서드를 사용하여 데이터 삽입
-                    self.mysql_hook.bulk_load(self.push_table, temp_file.name)
+                    self.mysql_hook.bulk_load(self.push_table, temp_file.name, ";")
 
                 logging.info(f"File {file} loaded into {self.push_table}")
