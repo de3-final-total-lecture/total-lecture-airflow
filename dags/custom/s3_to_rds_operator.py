@@ -32,35 +32,10 @@ class S3ToRDSOperator(BaseOperator):
             logging.warning("다운로드할 파일이 없습니다.")
             return
 
-        # MySQL에 CSV 로드
-        logging.info("CSV 파일을 RDS에 벌크 로드합니다.")
-
         for file_key in files:
             if file_key.endswith(".csv"):
-                # /tmp 디렉토리가 존재하는지 확인하고, 없으면 생성합니다.
-                tmp_dir = "/tmp"
-                # 임시 파일을 생성합니다.
-                try:
-                    with tempfile.NamedTemporaryFile(
-                        delete=True, dir=tmp_dir, suffix=".csv"
-                    ) as tmp_file:
-                        logging.info(tmp_file.name)
-                        tmp_file_path = tmp_file.name  # 파일 경로를 저장합니다.
-                        # S3에서 임시 파일로 다운로드합니다.
-                        logging.info(f"S3에서 {file_key} 파일을 다운로드합니다.")
-                        self.s3_hook.download_file(
-                            bucket_name=self.bucket_name,
-                            key=file_key,
-                            local_path="/tmp/",
-                        )
-                        # MySQL에 데이터를 벌크 로드합니다.
-                        logging.info(
-                            "파일 tmp/part-00000-c7b33c13-7c61-486b-baa1-5efe60d8340b-c000.csv을 MySQL에 벌크 로드합니다."
-                        )
-                        self.mysql_hook.bulk_load(
-                            self.push_table,
-                            "tmp/part-00000-c7b33c13-7c61-486b-baa1-5efe60d8340b-c000.csv",
-                            ";",
-                        )
-                except Exception as e:
-                    logging.error(f"파일 처리 중 오류 발생: {e}")
+                self.s3_hook.download_file(
+                    bucket_name=self.bucket_name,
+                    key=file_key,
+                    local_path="/tmp/",
+                )
