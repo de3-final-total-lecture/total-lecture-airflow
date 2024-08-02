@@ -34,8 +34,9 @@ class S3ToRDSOperator(BaseOperator):
 
         for file_key in files:
             if file_key.endswith(".csv"):
+                logging.info(file_key)
                 self.s3_hook.download_file(
                     bucket_name=self.bucket_name,
                     key=file_key,
-                    local_path="/tmp/",
+                    local_path="/tmp/temp",
                 )
