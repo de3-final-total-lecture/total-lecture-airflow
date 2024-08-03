@@ -27,10 +27,11 @@ class S3ToRDSOperator(BaseOperator):
         # S3에서 CSV 파일 다운로드
         prefix = f"{self.pull_prefix}/{self.today}/lecture_info/"
         logging.info(f"S3에서 {prefix} 경로의 CSV 파일을 가져옵니다.")
+        connection = self.mysql_hook.get_conn()
 
         # S3에서 파일 목록 가져오기
         files = self.s3_hook.list_keys(bucket_name=self.bucket_name, prefix=prefix)
-        cursor = self.connection.cursor()
+        cursor = connection.cursor()
 
         for file_key in files:
             file_path = f"s3://{self.bucket_name}/{file_key}"
@@ -46,9 +47,9 @@ class S3ToRDSOperator(BaseOperator):
 
             cursor.execute(sql)
 
-        self.connection.commit()
+        connection.commit()
         cursor.close()
-        self.connection.close()
+        connection.close()
 
         # # CSV 파일만 필터링
         # csv_files = [f for f in files if f.lower().endswith(".csv")]
