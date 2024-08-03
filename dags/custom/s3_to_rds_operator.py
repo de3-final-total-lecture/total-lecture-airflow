@@ -6,6 +6,7 @@ from datetime import timedelta
 import logging
 import tempfile
 import os
+import subprocess
 
 
 class S3ToRDSOperator(BaseOperator):
@@ -18,7 +19,8 @@ class S3ToRDSOperator(BaseOperator):
 
     def pre_execute(self, context):
         self.s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
-        self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
+        mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
+        self.connection = mysql_hook.get_connection("mysql_conn")
         self.today = (context["execution_date"] + timedelta(hours=9)).strftime("%m-%d")
 
     def execute(self, context):
@@ -26,22 +28,37 @@ class S3ToRDSOperator(BaseOperator):
         prefix = f"{self.pull_prefix}/{self.today}/lecture_info/"
         logging.info(f"S3에서 {prefix} 경로의 CSV 파일을 가져옵니다.")
 
+        # S3에서 파일 목록 가져오기
         files = self.s3_hook.list_keys(bucket_name=self.bucket_name, prefix=prefix)
 
-        if not files:
-            logging.warning("다운로드할 파일이 없습니다.")
-            return
+        # CSV 파일만 필터링
+        csv_files = [f for f in files if f.lower().endswith(".csv")]
 
-        for file in files:
-            if file.endswith(".csv"):
-                with tempfile.NamedTemporaryFile(mode="wb", suffix=".csv") as temp_file:
-                    # 2. 각 파일을 로컬에 다운로드
-                    self.s3_hook.get_key(file, self.bucket_name).download_fileobj(
-                        temp_file
-                    )
-                    temp_file.flush()
+        for file in csv_files:
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                file_path = os.path.join(tmpdirname, "Lecture_info.csv")
+                logging.info(file_path)
 
-                    # 3. MySQL bulk load 메서드를 사용하여 데이터 삽입
-                    self.mysql_hook.bulk_load(self.push_table, temp_file.name, ";")
+                self.s3_hook.get_key(file, bucket_name=self.bucket_name).download_file(
+                    file_path
+                )
+                logging.info(file_path + "/Lecture_info.csv")
 
-                logging.info(f"File {file} loaded into {self.push_table}")
+                command = [
+                    "mysqlimport",
+                    "--local",
+                    "--ignore",
+                    "--fields-terminated-by=;",
+                    f"--host={self.connection.host}",
+                    f"--user={self.connection.login}",
+                    f"--password={self.connection.password}",
+                    "--verbose",
+                    "--debug-info",
+                    self.connection.schema,
+                    file_path + "/Lecture_info.csv",
+                ]
+
+                if self.connection.port:
+                    command.insert(5, f"--port={self.connection.port}")
+
+                subprocess.run(command, check=True, capture_output=True, text=True)
