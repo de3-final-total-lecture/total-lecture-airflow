@@ -47,6 +47,7 @@ class S3ToRDSOperator(BaseOperator):
                     "--local",
                     "--ignore",
                     "--fields-terminated-by=;",
+                    "--fields-optionally-enclosed-by='\"'",
                     f"--host={self.connection.host}",
                     f"--user={self.connection.login}",
                     f"--password={self.connection.password}",
