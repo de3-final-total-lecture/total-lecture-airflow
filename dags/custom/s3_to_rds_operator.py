@@ -19,8 +19,8 @@ class S3ToRDSOperator(BaseOperator):
 
     def pre_execute(self, context):
         self.s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
-        mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
-        self.connection = mysql_hook.get_connection("mysql_conn")
+        self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
+        self.connection = self.mysql_hook.get_connection("mysql_conn")
         self.today = (context["execution_date"] + timedelta(hours=9)).strftime("%m-%d")
 
     def execute(self, context):
@@ -42,22 +42,26 @@ class S3ToRDSOperator(BaseOperator):
                     file_path
                 )
 
-                command = [
-                    "mysqlimport",
-                    "--local",
-                    "--ignore",
-                    "--fields-terminated-by=;",
-                    f"--host={self.connection.host}",
-                    f"--user={self.connection.login}",
-                    f"--password={self.connection.password}",
-                    "--verbose",
-                    "--debug-info",
-                    self.connection.schema,
-                    file_path,
-                ]
+                self.mysql_hook.bulk_load(
+                    table="Lecture_info", tmp_file=file_path, delimiter=";"
+                )
 
-                if self.connection.port:
-                    command.insert(5, f"--port={self.connection.port}")
+                # command = [
+                #     "mysqlimport",
+                #     "--local",
+                #     "--ignore",
+                #     "--fields-terminated-by=;",
+                #     f"--host={self.connection.host}",
+                #     f"--user={self.connection.login}",
+                #     f"--password={self.connection.password}",
+                #     "--verbose",
+                #     "--debug-info",
+                #     self.connection.schema,
+                #     file_path,
+                # ]
 
-                subprocess.run(command, check=True, capture_output=True, text=True)
+                # if self.connection.port:
+                #     command.insert(5, f"--port={self.connection.port}")
+
+                # subprocess.run(command, check=True, capture_output=True, text=True)
                 logging.info(f"{file}이 저장되었습니다.")
