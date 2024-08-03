@@ -24,23 +24,3 @@ class CustomMySqlHook(MySqlHook):
         finally:
             cursor.close()
             conn.close()
-
-    def get_conn(self):
-        conn = super().get_conn()
-        conn.allow_local_infile = True
-        return conn
-
-    def bulk_load(self, table: str, tmp_file: str, delimiter: str = "\t") -> None:
-        """Loads a file into a database table with the specified delimiter"""
-        conn = self.get_conn()
-        cur = conn.cursor()
-        cur.execute(
-            """
-            LOAD DATA LOCAL INFILE '{tmp_file}'
-            INTO TABLE {table}
-            FIELDS TERMINATED BY '{delimiter}'
-            """.format(
-                tmp_file=tmp_file, table=table, delimiter=delimiter
-            )
-        )
-        conn.commit()
