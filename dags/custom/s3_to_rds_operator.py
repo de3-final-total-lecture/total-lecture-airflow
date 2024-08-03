@@ -27,72 +27,52 @@ class S3ToRDSOperator(BaseOperator):
         # S3에서 CSV 파일 다운로드
         prefix = f"{self.pull_prefix}/{self.today}/lecture_info/"
         logging.info(f"S3에서 {prefix} 경로의 CSV 파일을 가져옵니다.")
-        connection = self.mysql_hook.get_conn()
 
         # S3에서 파일 목록 가져오기
         files = self.s3_hook.list_keys(bucket_name=self.bucket_name, prefix=prefix)
-        cursor = connection.cursor()
 
-        for file_key in files:
-            file_path = f"s3://{self.bucket_name}/{file_key}"
-            sql = f"""
-                LOAD DATA FROM S3 '{file_path}'
-                INTO TABLE Lecture_info
-                FIELDS TERMINATED BY ';'
-                ENCLOSED BY '"'
-                LINES TERMINATED BY '\n'
-                IGNORE 1 LINES
-                IGNORE;
-            """
+        # CSV 파일만 필터링
+        csv_files = [f for f in files if f.lower().endswith(".csv")]
 
-            cursor.execute(sql)
+        for file in csv_files:
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                file_path = os.path.join(tmpdirname, "Lecture_info.csv")
 
-        connection.commit()
-        cursor.close()
-        connection.close()
+                self.s3_hook.get_key(file, bucket_name=self.bucket_name).download_file(
+                    file_path
+                )
 
-        # # CSV 파일만 필터링
-        # csv_files = [f for f in files if f.lower().endswith(".csv")]
+                command = [
+                    "mysqlimport",
+                    "--local",
+                    "--ignore",
+                    "--fields-terminated-by=;",
+                    f"--host={self.connection.host}",
+                    f"--user={self.connection.login}",
+                    f"--password={self.connection.password}",
+                    "--verbose",
+                    "--ignore-lines=1",
+                    self.connection.schema,
+                    file_path,
+                ]
 
-        # for file in csv_files:
-        #     with tempfile.TemporaryDirectory() as tmpdirname:
-        #         file_path = os.path.join(tmpdirname, "Lecture_info.csv")
+                if self.connection.port:
+                    command.insert(5, f"--port={self.connection.port}")
 
-        #         self.s3_hook.get_key(file, bucket_name=self.bucket_name).download_file(
-        #             file_path
-        #         )
+                try:
+                    result = subprocess.run(
+                        command, check=True, capture_output=True, text=True
+                    )
+                    logging.info("Command output: %s", result.stdout)
+                    logging.info("Command errors: %s", result.stderr)
 
-        # command = [
-        #     "mysqlimport",
-        #     "--local",
-        #     "--ignore",
-        #     "--fields-terminated-by=;",
-        #     f"--host={self.connection.host}",
-        #     f"--user={self.connection.login}",
-        #     f"--password={self.connection.password}",
-        #     "--verbose",
-        #     "--ignore-lines=1",
-        #     self.connection.schema,
-        #     file_path,
-        # ]
+                    # 로깅할 레코드 수 파싱
+                    for line in result.stdout.splitlines():
+                        if "Records:" in line:
+                            logging.info(f"Number of records loaded: {line}")
+                            break
 
-        # if self.connection.port:
-        #     command.insert(5, f"--port={self.connection.port}")
-
-        # try:
-        #     result = subprocess.run(
-        #         command, check=True, capture_output=True, text=True
-        #     )
-        #     logging.info("Command output: %s", result.stdout)
-        #     logging.info("Command errors: %s", result.stderr)
-
-        #     # 로깅할 레코드 수 파싱
-        #     for line in result.stdout.splitlines():
-        #         if "Records:" in line:
-        #             logging.info(f"Number of records loaded: {line}")
-        #             break
-
-        # except subprocess.CalledProcessError as e:
-        #     logging.error("Error output: %s", e.stderr)
-        #     raise  # 에러 발생 시 예외를 다시 발생시켜 태스크가 실패하도록 함
-        # logging.info(f"{file}이 저장되었습니다.")
+                except subprocess.CalledProcessError as e:
+                    logging.error("Error output: %s", e.stderr)
+                    raise  # 에러 발생 시 예외를 다시 발생시켜 태스크가 실패하도록 함
+                logging.info(f"{file}이 저장되었습니다.")
