@@ -37,12 +37,10 @@ class S3ToRDSOperator(BaseOperator):
         for file in csv_files:
             with tempfile.TemporaryDirectory() as tmpdirname:
                 file_path = os.path.join(tmpdirname, "Lecture_info.csv")
-                logging.info(file_path)
 
                 self.s3_hook.get_key(file, bucket_name=self.bucket_name).download_file(
                     file_path
                 )
-                logging.info(file_path + "/Lecture_info.csv")
 
                 command = [
                     "mysqlimport",
@@ -61,15 +59,5 @@ class S3ToRDSOperator(BaseOperator):
                 if self.connection.port:
                     command.insert(5, f"--port={self.connection.port}")
 
-                try:
-                    result = subprocess.run(
-                        command, check=True, capture_output=True, text=True
-                    )
-                    print(f"Processed file {file}")
-                    print("Command output:", result.stdout)
-                    print("Command errors:", result.stderr)
-                except subprocess.CalledProcessError as e:
-                    print(f"Failed to process file {file}")
-                    print("Command failed with error:", e)
-                    print("Error output:", e.stderr)
-                    raise
+                subprocess.run(command, check=True, capture_output=True, text=True)
+                logging.info(f"{file}이 저장되었습니다.")
