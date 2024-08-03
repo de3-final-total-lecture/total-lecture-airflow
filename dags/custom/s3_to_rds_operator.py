@@ -61,4 +61,15 @@ class S3ToRDSOperator(BaseOperator):
                 if self.connection.port:
                     command.insert(5, f"--port={self.connection.port}")
 
-                subprocess.run(command, check=True, capture_output=True, text=True)
+                try:
+                    result = subprocess.run(
+                        command, check=True, capture_output=True, text=True
+                    )
+                    print(f"Processed file {file}")
+                    print("Command output:", result.stdout)
+                    print("Command errors:", result.stderr)
+                except subprocess.CalledProcessError as e:
+                    print(f"Failed to process file {file}")
+                    print("Command failed with error:", e)
+                    print("Error output:", e.stderr)
+                    raise
