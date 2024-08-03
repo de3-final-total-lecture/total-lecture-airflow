@@ -42,26 +42,21 @@ class S3ToRDSOperator(BaseOperator):
                     file_path
                 )
 
-                self.mysql_hook.bulk_load(
-                    table="Lecture_info", tmp_file=file_path, delimiter=";"
-                )
+                command = [
+                    "mysqlimport",
+                    "--local",
+                    "--ignore",
+                    "--fields-terminated-by=;",
+                    f"--host={self.connection.host}",
+                    f"--user={self.connection.login}",
+                    f"--password={self.connection.password}",
+                    "--verbose",
+                    self.connection.schema,
+                    file_path,
+                ]
 
-                # command = [
-                #     "mysqlimport",
-                #     "--local",
-                #     "--ignore",
-                #     "--fields-terminated-by=;",
-                #     f"--host={self.connection.host}",
-                #     f"--user={self.connection.login}",
-                #     f"--password={self.connection.password}",
-                #     "--verbose",
-                #     "--debug-info",
-                #     self.connection.schema,
-                #     file_path,
-                # ]
+                if self.connection.port:
+                    command.insert(5, f"--port={self.connection.port}")
 
-                # if self.connection.port:
-                #     command.insert(5, f"--port={self.connection.port}")
-
-                # subprocess.run(command, check=True, capture_output=True, text=True)
+                subprocess.run(command, check=True, capture_output=True, text=True)
                 logging.info(f"{file}이 저장되었습니다.")
