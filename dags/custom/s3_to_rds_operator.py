@@ -51,6 +51,7 @@ class S3ToRDSOperator(BaseOperator):
                     f"--user={self.connection.login}",
                     f"--password={self.connection.password}",
                     "--verbose",
+                    "--ignore-lines=1",
                     self.connection.schema,
                     file_path,
                 ]
@@ -58,5 +59,20 @@ class S3ToRDSOperator(BaseOperator):
                 if self.connection.port:
                     command.insert(5, f"--port={self.connection.port}")
 
-                subprocess.run(command, check=True, capture_output=True, text=True)
+                try:
+                    result = subprocess.run(
+                        command, check=True, capture_output=True, text=True
+                    )
+                    logging.info("Command output: %s", result.stdout)
+                    logging.info("Command errors: %s", result.stderr)
+
+                    # 로깅할 레코드 수 파싱
+                    for line in result.stdout.splitlines():
+                        if "Records:" in line:
+                            logging.info(f"Number of records loaded: {line}")
+                            break
+
+                except subprocess.CalledProcessError as e:
+                    logging.error("Error output: %s", e.stderr)
+                    raise  # 에러 발생 시 예외를 다시 발생시켜 태스크가 실패하도록 함
                 logging.info(f"{file}이 저장되었습니다.")
