@@ -55,7 +55,7 @@ class S3ToRDSOperator(BaseOperator):
                     "--verbose",
                     "--debug-info",
                     self.connection.schema,
-                    file_path + "/Lecture_info.csv",
+                    file_path,
                 ]
 
                 if self.connection.port:
