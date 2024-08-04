@@ -34,6 +34,7 @@ def bulk_load(self, table: str, tmp_file: str) -> None:
         LOAD DATA INFILE %s
         INTO TABLE %s
         FIELDS TERMINATED BY ';'
+        ENCLOSED BY '"'
         IGNORE 1 LINES
     """
 
