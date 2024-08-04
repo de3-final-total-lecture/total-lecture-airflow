@@ -42,7 +42,7 @@ class S3ToRDSOperator(BaseOperator):
                     file_path
                 )
 
-                self.mysql_hook.bulk_insert(self.push_table, file_path)
+                self.mysql_hook.bulk_load(self.push_table, file_path)
 
                 # command = [
                 #     "mysqlimport",
