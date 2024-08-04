@@ -30,9 +30,9 @@ class CustomMySqlHook(MySqlHook):
         cur = conn.cursor()
         cur.execute(
             """
-            LOAD DATA INFILE 'Lecture_info.csv'
+            LOAD DATA INFILE `Lecture_info.csv`
             IGNORE
-            INTO TABLE 'Lecture_info'
+            INTO TABLE `Lecture_info`
             FIELDS TERMINATED BY ';'
             IGNORE 1 LINES;
             """
