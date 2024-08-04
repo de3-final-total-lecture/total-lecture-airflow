@@ -35,7 +35,6 @@ def bulk_load(self, table: str, tmp_file: str) -> None:
         INTO TABLE %s
         FIELDS TERMINATED BY ';'
         IGNORE 1 LINES
-        IGNORE;
     """
 
     cur.execute(query, (tmp_file, table))

@@ -6,7 +6,6 @@ from datetime import timedelta
 import logging
 import tempfile
 import os
-import subprocess
 
 
 class S3ToRDSOperator(BaseOperator):
@@ -20,7 +19,6 @@ class S3ToRDSOperator(BaseOperator):
     def pre_execute(self, context):
         self.s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
         self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
-        self.connection = self.mysql_hook.get_connection("mysql_conn")
         self.today = (context["execution_date"] + timedelta(hours=9)).strftime("%m-%d")
 
     def execute(self, context):
@@ -36,47 +34,11 @@ class S3ToRDSOperator(BaseOperator):
 
         for file in csv_files:
             with tempfile.TemporaryDirectory() as tmpdirname:
-                file_path = os.path.join(tmpdirname, "Lecture_info.csv")
+                file_path = os.path.join(tmpdirname, f"{self.push_table}.csv")
 
                 self.s3_hook.get_key(file, bucket_name=self.bucket_name).download_file(
                     file_path
                 )
 
-                self.mysql_hook.bulk_load(table="Lecture_info", tmp_file=file_path)
-
-                # command = [
-                #     "mysqlimport",
-                #     "--local",
-                #     "--ignore",
-                #     "--fields-terminated-by=;",
-                #     "--lines-terminated-by=\\n",
-                #     "--default-character-set=utf8mb4",
-                #     f"--host={self.connection.host}",
-                #     f"--user={self.connection.login}",
-                #     f"--password={self.connection.password}",
-                #     "--verbose",
-                #     "--ignore-lines=1",
-                #     self.connection.schema,
-                #     file_path,
-                # ]
-
-                # if self.connection.port:
-                #     command.insert(5, f"--port={self.connection.port}")
-
-                # try:
-                #     result = subprocess.run(
-                #         command, check=True, capture_output=True, text=True
-                #     )
-                #     logging.info("Command output: %s", result.stdout)
-                #     logging.info("Command errors: %s", result.stderr)
-
-                #     # 로깅할 레코드 수 파싱
-                #     for line in result.stdout.splitlines():
-                #         if "Records:" in line:
-                #             logging.info(f"Number of records loaded: {line}")
-                #             break
-
-                # except subprocess.CalledProcessError as e:
-                #     logging.error("Error output: %s", e.stderr)
-                #     raise  # 에러 발생 시 예외를 다시 발생시켜 태스크가 실패하도록 함
-                logging.info(f"{file}이 저장되었습니다.")
+                self.mysql_hook.bulk_load(table=self.push_table, tmp_file=file_path)
+                logging.info("성공적으로 저장했습니다.")
