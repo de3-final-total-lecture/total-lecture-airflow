@@ -6,6 +6,7 @@ from datetime import timedelta
 import logging
 import tempfile
 import os
+import subprocess
 
 
 class S3ToRDSOperator(BaseOperator):
@@ -18,8 +19,9 @@ class S3ToRDSOperator(BaseOperator):
 
     def pre_execute(self, context):
         self.s3_hook = S3Hook(aws_conn_id="aws_s3_connection")
-        self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
+        mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
         self.today = (context["execution_date"] + timedelta(hours=9)).strftime("%m-%d")
+        self.connection = mysql_hook.get_conn()
 
     def execute(self, context):
         # S3에서 CSV 파일 다운로드
@@ -40,5 +42,24 @@ class S3ToRDSOperator(BaseOperator):
                     file_path
                 )
 
-                self.mysql_hook.bulk_load(table=self.push_table, tmp_file=file_path)
+                command = [
+                    "mysqlimport",
+                    "--local",
+                    "--ignore",
+                    "--fields-terminated-by=;",
+                    "--lines-terminated-by=\\n",
+                    "--default-character-set=utf8mb4",
+                    f"--host={self.connection.host}",
+                    f"--user={self.connection.login}",
+                    f"--password={self.connection.password}",
+                    "--verbose",
+                    "--ignore-lines=1",
+                    self.connection.schema,
+                    file_path,
+                ]
+
+                if self.connection.port:
+                    command.insert(5, f"--port={self.connection.port}")
+
+                subprocess.run(command, check=True, capture_output=True, text=True)
                 logging.info("성공적으로 저장했습니다.")
