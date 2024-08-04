@@ -2,6 +2,9 @@ from airflow.providers.mysql.hooks.mysql import MySqlHook
 
 
 class CustomMySqlHook(MySqlHook):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def bulk_insert(self, sql, parameters):
         """
         Execute the provided SQL query with parameters against the MySQL database.
@@ -25,16 +28,16 @@ class CustomMySqlHook(MySqlHook):
             cursor.close()
             conn.close()
 
-    # def bulk_load(self, table: str, tmp_file: str) -> None:
-    #     conn = self.get_conn()
-    #     cur = conn.cursor()
-    #     cur.execute(
-    #         """
-    #         LOAD DATA INFILE `Lecture_info.csv`
-    #         IGNORE
-    #         INTO TABLE `Lecture_info`
-    #         FIELDS TERMINATED BY ';'
-    #         IGNORE 1 LINES;
-    #         """
-    #     )
-    #     conn.commit()
+    def bulk_load(self, table: str, tmp_file: str) -> None:
+        """Loads a tab-delimited file into a database table"""
+        conn = self.get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            LOAD DATA LOCAL INFILE '{tmp_file}'
+            INTO TABLE {table}
+            """.format(
+                tmp_file=tmp_file, table=table
+            )
+        )
+        conn.commit()
