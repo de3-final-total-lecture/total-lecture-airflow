@@ -42,39 +42,41 @@ class S3ToRDSOperator(BaseOperator):
                     file_path
                 )
 
-                command = [
-                    "mysqlimport",
-                    "--local",
-                    "--ignore",
-                    "--fields-terminated-by=;",
-                    "--lines-terminated-by=\\n",
-                    "--default-character-set=utf8mb4",
-                    f"--host={self.connection.host}",
-                    f"--user={self.connection.login}",
-                    f"--password={self.connection.password}",
-                    "--verbose",
-                    "--ignore-lines=1",
-                    self.connection.schema,
-                    file_path,
-                ]
+                self.mysql_hook.bulk_load(table="Lecutre_info", tmp_file=file_path)
 
-                if self.connection.port:
-                    command.insert(5, f"--port={self.connection.port}")
+                # command = [
+                #     "mysqlimport",
+                #     "--local",
+                #     "--ignore",
+                #     "--fields-terminated-by=;",
+                #     "--lines-terminated-by=\\n",
+                #     "--default-character-set=utf8mb4",
+                #     f"--host={self.connection.host}",
+                #     f"--user={self.connection.login}",
+                #     f"--password={self.connection.password}",
+                #     "--verbose",
+                #     "--ignore-lines=1",
+                #     self.connection.schema,
+                #     file_path,
+                # ]
 
-                try:
-                    result = subprocess.run(
-                        command, check=True, capture_output=True, text=True
-                    )
-                    logging.info("Command output: %s", result.stdout)
-                    logging.info("Command errors: %s", result.stderr)
+                # if self.connection.port:
+                #     command.insert(5, f"--port={self.connection.port}")
 
-                    # 로깅할 레코드 수 파싱
-                    for line in result.stdout.splitlines():
-                        if "Records:" in line:
-                            logging.info(f"Number of records loaded: {line}")
-                            break
+                # try:
+                #     result = subprocess.run(
+                #         command, check=True, capture_output=True, text=True
+                #     )
+                #     logging.info("Command output: %s", result.stdout)
+                #     logging.info("Command errors: %s", result.stderr)
 
-                except subprocess.CalledProcessError as e:
-                    logging.error("Error output: %s", e.stderr)
-                    raise  # 에러 발생 시 예외를 다시 발생시켜 태스크가 실패하도록 함
+                #     # 로깅할 레코드 수 파싱
+                #     for line in result.stdout.splitlines():
+                #         if "Records:" in line:
+                #             logging.info(f"Number of records loaded: {line}")
+                #             break
+
+                # except subprocess.CalledProcessError as e:
+                #     logging.error("Error output: %s", e.stderr)
+                #     raise  # 에러 발생 시 예외를 다시 발생시켜 태스크가 실패하도록 함
                 logging.info(f"{file}이 저장되었습니다.")

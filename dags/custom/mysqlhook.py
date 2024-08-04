@@ -24,3 +24,16 @@ class CustomMySqlHook(MySqlHook):
         finally:
             cursor.close()
             conn.close()
+
+
+def bulk_load(self, table: str, tmp_file: str) -> None:
+    """Loads a tab-delimited file into a database table"""
+    conn = self.get_conn()
+    cur = conn.cursor()
+    query = """
+        LOAD DATA INFILE %s
+        INTO TABLE %s
+    """
+
+    cur.execute(query, (tmp_file, table))
+    conn.commit()
