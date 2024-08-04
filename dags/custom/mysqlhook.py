@@ -44,7 +44,7 @@ class CustomMySqlHook(MySqlHook):
         cur = conn.cursor()
         cur.execute(
             """
-            LOAD DATA LOCAL INFILE '{tmp_file}'
+            LOAD DATA INFILE '{tmp_file}'
             IGNORE
             INTO TABLE {table}
             FIELDS TERMINATED BY ';'
