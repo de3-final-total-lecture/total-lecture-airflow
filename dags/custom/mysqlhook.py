@@ -29,9 +29,14 @@ class CustomMySqlHook(MySqlHook):
         """Loads a tab-delimited file into a database table"""
         conn = self.get_conn()
         cur = conn.cursor()
-        query = """
-            LOAD DATA INFILE %s IGNORE INTO TABLE %s FIELDS TERMINATED BY ';' IGNORE 1 LINES;
-        """
-
-        cur.execute(query, (tmp_file, table))
+        cur.execute(
+            """
+            LOAD DATA INFILE '{tmp_file}'
+            IGNORE INTO TABLE {table}
+            FIELDS TERMINATED BY ';'
+            IGNORE 1 LINES;
+            """.format(
+                tmp_file=tmp_file, table=table
+            )
+        )
         conn.commit()
