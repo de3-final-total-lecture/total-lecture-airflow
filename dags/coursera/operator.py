@@ -227,7 +227,7 @@ class CourseraInfoToS3Operator(BaseOperator):
             if content_element
             else None
         )
-        course_info["whatdoilearn"] = content_items
+        course_info["what_do_i_learn"] = content_items
 
         skills_element = soup.find("ul", class_="css-yk0mzy")
         skill_items = (
