@@ -30,10 +30,7 @@ class CustomMySqlHook(MySqlHook):
         conn = self.get_conn()
         cur = conn.cursor()
         query = """
-            LOAD DATA INFILE %s
-            IGNORE INTO TABLE %s
-            FIELDS TERMINATED BY ';'
-            IGNORE 1 LINES;
+            LOAD DATA INFILE %s IGNORE INTO TABLE %s FIELDS TERMINATED BY ';' IGNORE 1 LINES;
         """
 
         cur.execute(query, (tmp_file, table))
