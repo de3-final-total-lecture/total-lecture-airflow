@@ -26,13 +26,13 @@ class CustomMySqlHook(MySqlHook):
             conn.close()
 
     def bulk_load(self, table: str, tmp_file: str) -> None:
-        """Loads a tab-delimited file into a database table"""
         conn = self.get_conn()
         cur = conn.cursor()
         cur.execute(
             """
             LOAD DATA INFILE '{tmp_file}'
-            IGNORE INTO TABLE {table}
+            IGNORE
+            INTO TABLE {table}
             FIELDS TERMINATED BY ';'
             IGNORE 1 LINES;
             """.format(
