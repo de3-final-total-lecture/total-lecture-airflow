@@ -33,7 +33,7 @@ class CustomMySqlHook(MySqlHook):
             LOAD DATA INFILE %s
             IGNORE INTO TABLE %s
             FIELDS TERMINATED BY ';'
-            IGNORE 1 LINES
+            IGNORE 1 LINES;
         """
 
         cur.execute(query, (tmp_file, table))
