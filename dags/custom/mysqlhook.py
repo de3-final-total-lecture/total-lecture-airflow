@@ -4,6 +4,7 @@ from airflow.providers.mysql.hooks.mysql import MySqlHook
 class CustomMySqlHook(MySqlHook):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.local_infile = kwargs.pop("local_infile", False)
 
     def bulk_insert(self, sql, parameters):
         """
