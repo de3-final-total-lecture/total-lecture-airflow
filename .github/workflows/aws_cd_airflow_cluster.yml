@@ -21,7 +21,7 @@ jobs:
         run: |
           TAGS=("BASTION_HOST" "WEBSERVER" "SCHEDULER" "WORKER")
           for TAG in "${TAGS[@]}"; do
-            INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars[${TAG}_NAME_TAG] }}" --query 'Reservations[0].Instances[0].InstanceId' --output text)
+            INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.${TAG}_NAME_TAG }}" --query 'Reservations[0].Instances[0].InstanceId' --output text)
             echo "${TAG}_ID=$INSTANCE_ID" >> $GITHUB_OUTPUT
           done
 
@@ -31,7 +31,7 @@ jobs:
         run: |
           TAGS=("BASTION_HOST" "WEBSERVER" "SCHEDULER" "WORKER")
           for TAG in "${TAGS[@]}"; do
-            STATUS=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instances.outputs[${TAG}_ID] }} --query 'Reservations[0].Instances[0].State.Name' --output text)
+            STATUS=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instances.outputs.${TAG}_ID }} --query 'Reservations[0].Instances[0].State.Name' --output text)
             echo "${TAG}_STATUS=$STATUS" >> $GITHUB_OUTPUT
           done
 
@@ -40,9 +40,9 @@ jobs:
         run: |
           TAGS=("BASTION_HOST" "WEBSERVER" "SCHEDULER" "WORKER")
           for TAG in "${TAGS[@]}"; do
-            if [ "${{ steps.check-status.outputs[${TAG}_STATUS] }}" != "running" ]; then
-              aws ec2 start-instances --instance-ids ${{ steps.get-instances.outputs[${TAG}_ID] }}
-              aws ec2 wait instance-running --instance-ids ${{ steps.get-instances.outputs[${TAG}_ID] }}
+            if [ "${{ steps.check-status.outputs.${TAG}_STATUS }}" != "running" ]; then
+              aws ec2 start-instances --instance-ids ${{ steps.get-instances.outputs${TAG}_ID }}
+              aws ec2 wait instance-running --instance-ids ${{ steps.get-instances.outputs.${TAG}_ID }}
             fi
           done
 
@@ -57,7 +57,7 @@ jobs:
             else
               IP_QUERY="PrivateIpAddress"
             fi
-            IP=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instances.outputs[${TAG}_ID] }} --query "Reservations[0].Instances[0].$IP_QUERY" --output text)
+            IP=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instances.outputs.${TAG}_ID }} --query "Reservations[0].Instances[0].$IP_QUERY" --output text)
             echo "${TAG}_IP=$IP" >> $GITHUB_OUTPUT
           done
 
@@ -70,7 +70,7 @@ jobs:
         run: |
           TAGS=("WEBSERVER" "SCHEDULER" "WORKER")
           for TAG in "${TAGS[@]}"; do
-            ssh -f -N -M -S my-cicd-socket -o StrictHostKeyChecking=no -i team_jun_1.pem -L 2222:${{ steps.get-instance-ips.outputs[${TAG}_IP] }}:22 ubuntu@${{ steps.get-instance-ips.outputs[BASTION_HOST_IP] }}
+            ssh -f -N -M -S my-cicd-socket -o StrictHostKeyChecking=no -i team_jun_1.pem -L 2222:${{ steps.get-instance-ips.outputs.${TAG}_IP }}:22 ubuntu@${{ steps.get-instance-ips.outputs.BASTION_HOST_IP }}
             ssh -o StrictHostKeyChecking=no -i team_jun_1.pem -p 2222 ubuntu@localhost << 'EOF'
               echo "Connected to Private Subnet Airflow Server via SSH Tunneling"
               cd ${{ vars.AIRFLOW_DIR }}
@@ -79,5 +79,5 @@ jobs:
               git pull origin main
               rm ~/.git-credentials
             EOF
-            ssh -S my-cicd-socket -O exit ubuntu@${{ steps.get-instance-ips.outputs[BASTION_HOST_IP] }}
+            ssh -S my-cicd-socket -O exit ubuntu@${{ steps.get-instance-ips.outputs.BASTION_HOST_IP }}
           done
