@@ -7,12 +7,12 @@ from openai import OpenAI
 import json
 from tenacity import retry, stop_after_attempt, wait_exponential
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime
 import time
-from plugins.base62 import encoding_url
-import requests
 import json
 import logging
+import pendulum
+from copy import deepcopy
 
 
 class OpenAICategoryConnectionOperator(BaseOperator):
