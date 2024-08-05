@@ -187,8 +187,8 @@ jobs:
 
 
           echo "Fetching AIRFLOW Instance Details"
-          AIRFLOW_IDS=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=jun-1" --query 'Reservations[*].Instances[*].InstanceId' --output text)
-          AIRFLOW_IPS=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=jun-1" --query 'Reservations[*].Instances[*].PrivateIpAddress' --output text)
+          AIRFLOW_IDS=$(aws ec2 describe-instances --filters "Name=tag:${{ vars.AIRFLOW_TAG_NAME }},Values=${{ vars.AIRFLOW_TAG_VALUE }}" --query 'Reservations[*].Instances[*].InstanceId' --output text)
+          AIRFLOW_IPS=$(aws ec2 describe-instances --filters "Name=tag:${{ vars.AIRFLOW_TAG_NAME }},Values=${{ vars.AIRFLOW_TAG_VALUE }}" --query 'Reservations[*].Instances[*].PrivateIpAddress' --output text)
 
           echo "Instance IDs: $AIRFLOW_IDS"
           echo "Instance IPs: $AIRFLOW_IPS"
