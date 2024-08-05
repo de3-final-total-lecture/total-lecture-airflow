@@ -20,7 +20,7 @@ from airflow.utils.dates import days_ago
 with DAG(
     dag_id="load_data_from_three_platform",
     start_date=kst.convert(days_ago(1)),
-    schedule_interval="0 12 * * *",
+    schedule_interval="0 12 * * 3",  # 매주 수요일 오후 12시에 실행
     catchup=False,
 ) as dag:
     start = EmptyOperator(task_id="start")
