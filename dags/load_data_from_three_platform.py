@@ -1,7 +1,6 @@
 from airflow.models.dag import DAG
 from airflow.providers.amazon.aws.operators.glue import GlueJobOperator
 from airflow.operators.empty import EmptyOperator
-from airflow.models import Variable
 from airflow.utils.task_group import TaskGroup
 import pendulum
 from dags.coursera.operator import CourseraPreInfoToS3Operator, CourseraInfoToS3Operator
@@ -16,10 +15,13 @@ from dags.openai.operator import OpenAICategoryConnectionOperator
 from datetime import timedelta
 
 kst = pendulum.timezone("Asia/Seoul")
+from airflow.utils.dates import days_ago
 
 with DAG(
     dag_id="load_data_from_three_platform",
-    start_date=pendulum.today(tz=kst).subtract(days=1),
+    start_date=kst.convert(days_ago(1)),
+    schedule_interval="0 12 * * 3",  # 매주 수요일 오후 12시에 실행
+    catchup=False,
 ) as dag:
     start = EmptyOperator(task_id="start")
 
