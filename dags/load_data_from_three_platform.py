@@ -13,6 +13,7 @@ from dags.udemy.operator import UdemyInfoToS3Operator
 from dags.custom.s3_to_rds_operator import S3ToRDSOperator
 from dags.openai.operator import OpenAICategoryConnectionOperator
 from datetime import timedelta
+from plugins.my_slack import on_failure_callback, on_success_callback
 
 kst = pendulum.timezone("Asia/Seoul")
 from airflow.utils.dates import days_ago
@@ -22,6 +23,8 @@ with DAG(
     start_date=kst.convert(days_ago(1)),
     schedule_interval="0 12 * * 3",  # 매주 수요일 오후 12시에 실행
     catchup=False,
+    on_failure_callback=on_failure_callback,
+    on_success_callback=on_success_callback,
 ) as dag:
     start = EmptyOperator(task_id="start")
 
