@@ -20,7 +20,7 @@ with DAG(
     "load_lecture_price",
     default_args=default_args,
     description="DAG for load lecture price in Lecture_price_history table.",
-    schedule_interval=None,
+    schedule_interval="0 18 * * *",
 ) as dag:
 
     get_inflearn_lecture_price = InflearnPriceOperator(
