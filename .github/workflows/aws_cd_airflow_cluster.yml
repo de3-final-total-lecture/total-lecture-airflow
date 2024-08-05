@@ -205,7 +205,7 @@ jobs:
 
 
           sleep 10
-          for INSTANCE_IP in $INSTANCE_IPS; do
+          for INSTANCE_IP in $AIRFLOW_IPS; do
             echo "Deploying to instance at $INSTANCE_IP..."
             ssh -f -N -M -S my-cicd-socket -o StrictHostKeyChecking=no -i team_jun_1.pem -L 2222:$INSTANCE_IP:22 ubuntu@$BASTION_HOST_IP
             ssh -o StrictHostKeyChecking=no -i team_jun_1.pem -p 2222 ubuntu@localhost << 'EOF'
@@ -218,3 +218,5 @@ jobs:
           EOF
             ssh -S my-cicd-socket -O exit ubuntu@$BASTION_HOST_IP
           done
+
+          echo "finished!!"
