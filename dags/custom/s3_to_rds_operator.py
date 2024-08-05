@@ -43,25 +43,4 @@ class S3ToRDSOperator(BaseOperator):
                 )
 
                 self.mysql_hook.bulk_load(self.push_table, file_path)
-
-                # command = [
-                #     "mysqlimport",
-                #     "--local",
-                #     "--ignore",
-                #     "--fields-terminated-by=;",
-                #     "--lines-terminated-by=\\n",
-                #     "--default-character-set=utf8mb4",
-                #     f"--host={self.connection.host}",
-                #     f"--user={self.connection.login}",
-                #     f"--password={self.connection.password}",
-                #     "--verbose",
-                #     "--ignore-lines=1",
-                #     self.connection.schema,
-                #     file_path,
-                # ]
-
-                # if self.connection.port:
-                #     command.insert(5, f"--port={self.connection.port}")
-
-                # subprocess.run(command, check=True, capture_output=True, text=True)
                 logging.info("성공적으로 저장했습니다.")
