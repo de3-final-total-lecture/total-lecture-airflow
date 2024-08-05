@@ -285,6 +285,14 @@ class UdemyPriceOperator(BaseOperator):
             course_id, lecture_id = row[0], row[1]
             detail = self.udemy.course_detail(course_id)
             price = int(detail["price_detail"]["amount"])
+            if self.is_any_change_to_price:
+                update_price_query = (
+                    f"UPDATE Lecture_info SET {price} WHERE lecture_id = {lecture_id}"
+                )
+                self.mysql_hook.run(update_price_query)
+                logging.info(
+                    f"{lecture_id}의 강의 가격이 {price}로 업데이트 되었습니다."
+                )
             insert_data.append((lecture_id, price))
             time.sleep(0.5)
         return insert_data
@@ -294,3 +302,12 @@ class UdemyPriceOperator(BaseOperator):
             "INSERT INTO Lecture_price_history (lecture_id, price) VALUES (%s, %s)"
         )
         self.mysql_hook.bulk_insert(insert_lecture_price_query, parameters=insert_data)
+
+    def is_any_change_to_price(self, lecture_id, price):
+        get_existed_price_query = (
+            f"SELECT price FROM Lecture_info WHERE lecture_id = {lecture_id}"
+        )
+        existed_price = self.mysql_hook.get_first(get_existed_price_query)[0]
+        if existed_price != price:
+            return True
+        return False
