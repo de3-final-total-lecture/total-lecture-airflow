@@ -47,7 +47,7 @@ jobs:
           echo "Bastion Host STATUS: $BASTION_HOST_STATUS"
           echo "Webserver STATUS: $WEBSERVER_STATUS"
           echo "Scheduler STATUS: $SCHEDULER_STATUS"
-          echo "Worker STATUS: $Worker_STATUS"
+          echo "Worker STATUS: $WORKER_STATUS"
 
           echo "bastion_host_status=$BASTION_HOST_STATUS" >> $GITHUB_OUTPUT
           echo "webserver_status=$WEBSERVER_STATUS" >> $GITHUB_OUTPUT
