@@ -16,68 +16,132 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
 
 
-      - name: Get instance IDs by Tag
+      - name: Get instance ID by Tag
         id: get-instance
         run: |
-          TAGS=("BASTION_HOST" "WEBSERVER" "SCHEDULER" "WORKER")
-          for TAG in "${TAGS[@]}"; do
-            INSTANCE_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.${TAG}_NAME_TAG }}" --query 'Reservations[0].Instances[0].InstanceId' --output text)
-            echo "${TAG}_ID=$INSTANCE_ID" >> $GITHUB_OUTPUT
-          done
+          BASTION_HOST_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.BASTION_HOST_NAME_TAG }}" --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          WEBSERVER_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.WEBSERVER_NAME_TAG }}" --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          SCHEDULER_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.SCHEDULER_NAME_TAG }}" --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          WORKER_ID=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=${{ vars.WORKER_NAME_TAG }}" --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          
+          echo "Bastion Host ID: $BASTION_HOST_ID"
+          echo "Webserver ID: $WEBSERVER_ID"
+          echo "Scheduler ID: $SCHEDULER_ID"
+          echo "Worker ID: $WORKER_ID"
+
+          echo "bastion_host_id=$BASTION_HOST_ID" >> $GITHUB_OUTPUT
+          echo "webserver_id=$WEBSERVER_ID" >> $GITHUB_OUTPUT
+          echo "scheduler_id=$SCHEDULER_ID" >> $GITHUB_OUTPUT
+          echo "worker_id=$WORKER_ID" >> $GITHUB_OUTPUT
+
 
 
       - name: Check instance status
         id: check-status
         run: |
-          TAGS=("BASTION_HOST" "WEBSERVER" "SCHEDULER" "WORKER")
-          for TAG in "${TAGS[@]}"; do
-            STATUS=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instances.outputs.${TAG}_ID }} --query 'Reservations[0].Instances[0].State.Name' --output text)
-            echo "${TAG}_STATUS=$STATUS" >> $GITHUB_OUTPUT
-          done
+          BASTION_HOST_STATUS=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.bastion_host_id }} --query 'Reservations[0].Instances[0].State.Name' --output text)
+          WEBSERVER_STATUS=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.webserver_id }} --query 'Reservations[0].Instances[0].State.Name' --output text)
+          SCHEDULER_STATUS=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.scheduler_id }} --query 'Reservations[0].Instances[0].State.Name' --output text)
+          WORKER_STATUS=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.worker_id }} --query 'Reservations[0].Instances[0].State.Name' --output text)
 
+          echo "Bastion Host STATUS: $BASTION_HOST_STATUS"
+          echo "Webserver STATUS: $WEBSERVER_STATUS"
+          echo "Scheduler STATUS: $SCHEDULER_STATUS"
+          echo "Worker STATUS: $Worker_STATUS"
 
-      - name: Start instances if stopped
+          echo "bastion_host_status=$BASTION_HOST_STATUS" >> $GITHUB_OUTPUT
+          echo "webserver_status=$WEBSERVER_STATUS" >> $GITHUB_OUTPUT
+          echo "scheduler_status=$SCHEDULER_STATUS" >> $GITHUB_OUTPUT
+          echo "worker_status=$WORKER_STATUS" >> $GITHUB_OUTPUT
+
+  
+      - name: Start Bastion Host if stopped
+        if: steps.check-status.outputs.bastion_host_status != 'running'
         run: |
-          TAGS=("BASTION_HOST" "WEBSERVER" "SCHEDULER" "WORKER")
-          for TAG in "${TAGS[@]}"; do
-            if [ "${{ steps.check-status.outputs.${TAG}_STATUS }}" != "running" ]; then
-              aws ec2 start-instances --instance-ids ${{ steps.get-instances.outputs${TAG}_ID }}
-              aws ec2 wait instance-running --instance-ids ${{ steps.get-instances.outputs.${TAG}_ID }}
-            fi
-          done
+          aws ec2 start-instances --instance-ids ${{ steps.get-instance.outputs.bastion_host_id }}
+          aws ec2 wait instance-running --instance-ids ${{ steps.get-instance.outputs.bastion_host_id }}
+  
+          
+      - name: Start Webserver Server if stopped
+        if: steps.check-status.outputs.webserver_status != 'running'
+        run: |
+          aws ec2 start-instances --instance-ids ${{ steps.get-instance.outputs.webserver_id }}
+          aws ec2 wait instance-running --instance-ids ${{ steps.get-instance.outputs.webserver_id }}
+
+
+      - name: Start Scheduler Server if stopped
+        if: steps.check-status.outputs.scheduler_status != 'running'
+        run: |
+          aws ec2 start-instances --instance-ids ${{ steps.get-instance.outputs.scheduler_id }}
+          aws ec2 wait instance-running --instance-ids ${{ steps.get-instance.outputs.scheduler_id }}
+      
+      - name: Start Worker Server if stopped
+        if: steps.check-status.outputs.worker_status != 'running'
+        run: |
+          aws ec2 start-instances --instance-ids ${{ steps.get-instance.outputs.worker_id }}
+          aws ec2 wait instance-running --instance-ids ${{ steps.get-instance.outputs.worker_id }}
+
 
 
       - name: Get instance IPs
         id: get-instance-ips
         run: |
-          TAGS=("BASTION_HOST" "WEBSERVER" "SCHEDULER" "WORKER")
-          for TAG in "${TAGS[@]}"; do
-            if [ "$TAG" == "BASTION_HOST" ]; then
-              IP_QUERY="PublicIpAddress"
-            else
-              IP_QUERY="PrivateIpAddress"
-            fi
-            IP=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instances.outputs.${TAG}_ID }} --query "Reservations[0].Instances[0].$IP_QUERY" --output text)
-            echo "${TAG}_IP=$IP" >> $GITHUB_OUTPUT
-          done
+          BASTION_HOST_IP=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.bastion_host_id }} --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+          WEBSERVER_IP=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.webserver_id }} --query 'Reservations[0].Instances[0].PrivateIpAddress' --output text)
+          SCHEDULER_IP=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.scheduler_id }} --query 'Reservations[0].Instances[0].PrivateIpAddress' --output text)
+          WORKER_IP=$(aws ec2 describe-instances --instance-ids ${{ steps.get-instance.outputs.worker_id }} --query 'Reservations[0].Instances[0].PrivateIpAddress' --output text)
+          
+          echo "Bastion Host IP: $BASTION_HOST_IP"
+          echo "WEBSERVER IP: $WEBSERVER_IP"
+          echo "SCHEDULER IP: $SCHEDULER_IP"
+          echo "WORKER IP: $WORKER_IP"
 
+          echo "bastion_host_ip=$BASTION_HOST_IP" >> $GITHUB_OUTPUT
+          echo "webserver_ip=$WEBSERVER_IP" >> $GITHUB_OUTPUT
+          echo "scheduler_ip=$SCHEDULER_IP" >> $GITHUB_OUTPUT
+          echo "worker_ip=$WORKER_IP" >> $GITHUB_OUTPUT
+
+    
       - name: Create SSH key file
         run: |
           echo "${{ secrets.PRIVATE_KEY }}" > team_jun_1.pem
           chmod 600 team_jun_1.pem
+          
 
-      - name: Git Pull on Airflow Servers
+      - name: Git Pull on Airflow Server
         run: |
-          TAGS=("WEBSERVER" "SCHEDULER" "WORKER")
-          for TAG in "${TAGS[@]}"; do
-            ssh -f -N -M -S my-cicd-socket -o StrictHostKeyChecking=no -i team_jun_1.pem -L 2222:${{ steps.get-instance-ips.outputs.${TAG}_IP }}:22 ubuntu@${{ steps.get-instance-ips.outputs.BASTION_HOST_IP }}
-            ssh -o StrictHostKeyChecking=no -i team_jun_1.pem -p 2222 ubuntu@localhost << 'EOF'
-              echo "Connected to Private Subnet Airflow Server via SSH Tunneling"
-              cd ${{ vars.AIRFLOW_DIR }}
-              git config --global credential.helper store
-              echo "https://${{ secrets.GIT_AUTH_TOKEN }}:@github.com" > ~/.git-credentials
-              git pull origin main
-              rm ~/.git-credentials
-            EOF
-            ssh -S my-cicd-socket -O exit ubuntu@${{ steps.get-instance-ips.outputs.BASTION_HOST_IP }}
-          done
+          sleep 10
+          ssh -f -N -M -S my-cicd-socket -o StrictHostKeyChecking=no -i team_jun_1.pem -L 2222:${{ steps.get-instance-ips.outputs.webserver_ip }}:22 ubuntu@${{ steps.get-instance-ips.outputs.bastion_host_ip}}
+          ssh -o StrictHostKeyChecking=no -i team_jun_1.pem -p 2222 ubuntu@localhost << 'EOF'
+            echo "Connected to Private Subnet Airflow SAeerver via SSH Tunneling"
+            cd airflow
+            git config --global credential.helper store
+            echo "https://${{ secrets.GIT_AUTH_TOKEN }}:@github.com" > ~/.git-credentials
+            git pull origin main
+            rm ~/.git-credentials
+          EOF
+          ssh -S my-cicd-socket -O exit ubuntu@${{ steps.get-instance-ips.output.bastion_host_ip }}
+
+          
+          ssh -f -N -M -S my-cicd-socket -o StrictHostKeyChecking=no -i team_jun_1.pem -L 2222:${{ steps.get-instance-ips.outputs.scheduler_ip }}:22 ubuntu@${{ steps.get-instance-ips.outputs.bastion_host_ip}}
+          ssh -o StrictHostKeyChecking=no -i team_jun_1.pem -p 2222 ubuntu@localhost << 'EOF'
+            echo "Connected to Private Subnet Airflow SAeerver via SSH Tunneling"
+            cd airflow
+            git config --global credential.helper store
+            echo "https://${{ secrets.GIT_AUTH_TOKEN }}:@github.com" > ~/.git-credentials
+            git pull origin main
+            rm ~/.git-credentials
+          EOF
+          ssh -S my-cicd-socket -O exit ubuntu@${{ steps.get-instance-ips.output.bastion_host_ip }}
+
+          
+          ssh -f -N -M -S my-cicd-socket -o StrictHostKeyChecking=no -i team_jun_1.pem -L 2222:${{ steps.get-instance-ips.outputs.worker_ip }}:22 ubuntu@${{ steps.get-instance-ips.outputs.bastion_host_ip}}
+          ssh -o StrictHostKeyChecking=no -i team_jun_1.pem -p 2222 ubuntu@localhost << 'EOF'
+            echo "Connected to Private Subnet Airflow SAeerver via SSH Tunneling"
+            cd airflow
+            git config --global credential.helper store
+            echo "https://${{ secrets.GIT_AUTH_TOKEN }}:@github.com" > ~/.git-credentials
+            git pull origin main
+            rm ~/.git-credentials
+          EOF
+          ssh -S my-cicd-socket -O exit ubuntu@${{ steps.get-instance-ips.output.bastion_host_ip }}
