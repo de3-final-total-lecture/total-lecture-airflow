@@ -16,29 +16,29 @@ with DAG(
     description="DAG to create tables",
     schedule_interval=None,
 ) as dag:
-    create_users_table = MySqlOperator(
-        task_id="create_users_table",
-        sql="""CREATE TABLE IF NOT EXISTS Users (
-            user_id INT AUTO_INCREMENT PRIMARY KEY,
-            user_name VARCHAR(16),
-            user_email VARCHAR(255) NOT NULL UNIQUE,
-            user_password VARCHAR(255) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        );""",
-        mysql_conn_id="mysql_conn",
-    )
+    # create_users_table = MySqlOperator(
+    #     task_id="create_users_table",
+    #     sql="""CREATE TABLE IF NOT EXISTS Users (
+    #         user_id INT AUTO_INCREMENT PRIMARY KEY,
+    #         user_name VARCHAR(16),
+    #         user_email VARCHAR(255) NOT NULL UNIQUE,
+    #         user_password VARCHAR(255) NOT NULL,
+    #         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    #         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    #     );""",
+    #     mysql_conn_id="mysql_conn",
+    # )
 
-    create_wish_list_table = MySqlOperator(
-        task_id="create_wish_list_table",
-        sql="""CREATE TABLE IF NOT EXISTS Wish_list (
-            lecture_id VARCHAR(255) PRIMARY KEY,
-            user_id INT PRIMARY KEY,
-            lecture_name VARCHAR(255),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );""",
-        mysql_conn_id="mysql_conn",
-    )
+    # create_wish_list_table = MySqlOperator(
+    #     task_id="create_wish_list_table",
+    #     sql="""CREATE TABLE IF NOT EXISTS Wish_list (
+    #         lecture_id VARCHAR(255),
+    #         user_id INT,
+    #         lecture_name VARCHAR(255),
+    #         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    #     );""",
+    #     mysql_conn_id="mysql_conn",
+    # )
 
     create_category_table = MySqlOperator(
         task_id="create_category_table",
