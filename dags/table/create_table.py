@@ -33,7 +33,7 @@ with DAG(
         task_id="create_wish_list_table",
         sql="""CREATE TABLE IF NOT EXISTS Wish_list (
             lecture_id VARCHAR(255) PRIMARY KEY,
-            user_id INT,
+            user_id INT PRIMARY KEY,
             lecture_name VARCHAR(255),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );""",
@@ -72,6 +72,7 @@ with DAG(
             is_new BOOLEAN,
             is_recommend BOOLEAN,
             platform_name VARCHAR(32),
+            like_count INT DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         );""",

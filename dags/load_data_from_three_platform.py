@@ -23,10 +23,8 @@ with DAG(
     start_date=kst.convert(days_ago(1)),
     schedule_interval="0 12 * * 3",  # 매주 수요일 오후 12시에 실행
     catchup=False,
-    default_args={
-        "on_failure_callback": on_failure_callback,
-        "on_success_callback": on_success_callback,
-    },
+    on_failure_callback=on_failure_callback,
+    on_success_callback=on_success_callback,
 ) as dag:
     start = EmptyOperator(task_id="start")
 
