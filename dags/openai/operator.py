@@ -3,9 +3,9 @@ from airflow.utils.decorators import apply_defaults
 from custom.mysqlhook import CustomMySqlHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.models import Variable
+from openai import OpenAI
 import json
 from tenacity import retry, stop_after_attempt, wait_exponential
-import concurrent.futures
 import logging
 from datetime import timedelta
 import time
