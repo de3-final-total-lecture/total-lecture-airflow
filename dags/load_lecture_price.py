@@ -1,6 +1,6 @@
 from inflearn.operator import InflearnPriceOperator
 from udemy.operator import UdemyPriceOperator
-from airflow.models import Variable
+from plugins.my_slack import on_failure_callback, on_success_callback
 
 from airflow import DAG
 from airflow.utils.dates import days_ago
@@ -21,6 +21,8 @@ with DAG(
     default_args=default_args,
     description="DAG for load lecture price in Lecture_price_history table.",
     schedule_interval="0 18 * * *",
+    on_failure_callback=on_failure_callback,
+    on_success_callback=on_success_callback,
 ) as dag:
 
     get_inflearn_lecture_price = InflearnPriceOperator(
