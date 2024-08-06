@@ -312,13 +312,13 @@ class OpenAICategoryConnectionOperator(BaseOperator):
 
         return category_processed, insert_datas
 
-    def insert_to_mysql(self, mysql_hook, processed_datas):
+    def insert_to_mysql(self, processed_datas):
         insert_query = (
             "INSERT IGNORE INTO Category_conn (lecture_id, category_id) VALUES (%s, %s)"
         )
         logging.info(f"processed_datas: {processed_datas[:3]}")
         for elem in processed_datas:
-            mysql_hook.run(insert_query, parameters=elem)
+            self.mysql_hook.run(insert_query, parameters=elem)
 
     def save_llm_operation_result_to_s3(
         self,
