@@ -62,6 +62,12 @@ def get_udemy(course_id):
     response = requests.get(url, params=params).json()
     return response
 
+def get_udemy_price(course_id):
+    # url = 'https://www.udemy.com/api-2.0/course-landing-components/'
+    url = 'https://www.udemy.com/api-2.0/pricing/'
+    params = {
+        
+    }
 
 def extract_udemy(sort_type, **kwargs):
     logger.info("Starting Udemy extraction...")
@@ -117,13 +123,17 @@ def extract_udemy(sort_type, **kwargs):
                 search_url = 'https://www.udemy.com' + course['url']
                 title = course['title']
                 
-                price = int(course['price_detail']['amount'])
                 headline = course['headline']
 
                 # Description 추출
                 course_id = course["id"]
                 course_element = get_udemy(course_id)
                 description = course_element['units'][0]['items'][0]['objectives_summary']
+                
+                price_url = f'https://www.udemy.com/api-2.0/pricing/?course_ids={course_id}&fields[pricing_result]=price_detail,discount_price'
+                response = requests.get(price_url).json()
+                current_price = int(response['courses'][course_id]['price']['amount'])
+                origin_price = int(response['courses'][course_id]['price_detail']['amount'])
                 
                 teacher = course['visible_instructors'][0]['display_name']
                 scope = round(course['avg_rating'], 1)
@@ -181,7 +191,8 @@ def extract_udemy(sort_type, **kwargs):
                     "content": {
                     "lecture_id": hash_url,
                     "lecture_name": title,
-                    "price": price,
+                    "price": current_price,
+                    "origin_price": origin_price,
                     "description": headline,
                     "what_do_i_learn": description,
                     "tag": [],
