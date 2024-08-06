@@ -6,7 +6,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 import concurrent.futures
 import logging
 from datetime import timedelta
-from plugins.base62 import encoding_url
+import base64
 import requests
 import json
 import logging
@@ -165,8 +165,6 @@ class UdemyInfoToS3Operator(BaseOperator):
         try:
             search_url = "https://www.udemy.com" + course["url"]
             title = course["title"]
-
-            price = int(course["price_detail"]["amount"])
             headline = course["headline"]
 
             # Description 추출
@@ -174,6 +172,20 @@ class UdemyInfoToS3Operator(BaseOperator):
             course_element = self.get_udemy(course_id)
 
             description = course_element["units"][0]["items"][0]["objectives_summary"]
+
+            price_course_id = str(course_id)
+            price_url = f"https://www.udemy.com/api-2.0/pricing/?course_ids={course_id}&fields[pricing_result]=price_detail,price"
+            response = requests.get(price_url).json()
+            if response:
+                logging.info("Price is True")
+            else:
+                logging.info("Price is False")
+            current_price = int(response["courses"][price_course_id]["price"]["amount"])
+            logging.info(current_price)
+            origin_price = int(
+                response["courses"][price_course_id]["price_detail"]["amount"]
+            )
+            logging.info(origin_price)
 
             teacher = course["visible_instructors"][0]["display_name"]
             scope = round(course["avg_rating"], 1)
@@ -202,7 +214,7 @@ class UdemyInfoToS3Operator(BaseOperator):
             courses = response.json()
             review_cnt = courses["count"]
 
-            hash_url = encoding_url(search_url)
+            hash_url = base64.b64encode(search_url.encode("utf-8"))
 
             rating_5 = []
             rating_4 = []
@@ -234,7 +246,8 @@ class UdemyInfoToS3Operator(BaseOperator):
                 "content": {
                     "lecture_id": hash_url,
                     "lecture_name": title,
-                    "price": price,
+                    "price": current_price,
+                    "origin_price": origin_price,
                     "description": headline,
                     "what_do_i_learn": description,
                     "tag": [],
