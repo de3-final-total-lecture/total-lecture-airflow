@@ -306,7 +306,7 @@ class UdemyPriceOperator(BaseOperator):
 
     def is_any_change_to_price(self, lecture_id, price):
         get_existed_price_query = (
-            f"SELECT price FROM Lecture_info WHERE lecture_id = {lecture_id}"
+            f"SELECT price FROM Lecture_info WHERE lecture_id = '{lecture_id}'"
         )
         existed_price = int(self.mysql_hook.get_first(get_existed_price_query)[0])
         if existed_price != price:
