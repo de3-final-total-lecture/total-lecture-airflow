@@ -32,15 +32,40 @@ class CustomMySqlHook(MySqlHook):
     def bulk_load(self, table: str, tmp_file: str) -> None:
         conn = self.get_conn()
         cur = conn.cursor()
-        cur.execute(
-            """
+        # 테이블의 컬럼 정보 가져오기
+        cur.execute(f"DESCRIBE {table}")
+        columns = [column[0] for column in cur.fetchall()]
+
+        # created_at과 updated_at을 제외한 컬럼 목록 생성
+        regular_columns = [
+            col for col in columns if col not in ("created_at", "updated_at")
+        ]
+        load_data_sql = f"""
             LOAD DATA LOCAL INFILE '{tmp_file}'
-            IGNORE
             INTO TABLE {table}
             FIELDS TERMINATED BY ';'
-            IGNORE 1 LINES;
-            """.format(
-                tmp_file=tmp_file, table=table
-            )
-        )
+            IGNORE 1 LINES
+            ({', '.join(regular_columns)}, @created_at, @updated_at)
+            SET 
+                created_at = IFNULL(@created_at, NOW()),
+                updated_at = IFNULL(@updated_at, NOW())
+        """
+        cur.execute(load_data_sql)
         conn.commit()
+
+
+# def bulk_load(self, table: str, tmp_file: str) -> None:
+#         conn = self.get_conn()
+#         cur = conn.cursor()
+#         cur.execute(
+#             """
+#             LOAD DATA LOCAL INFILE '{tmp_file}'
+#             IGNORE
+#             INTO TABLE {table}
+#             FIELDS TERMINATED BY ';'
+#             IGNORE 1 LINES;
+#             """.format(
+#                 tmp_file=tmp_file, table=table
+#             )
+#         )
+#         conn.commit()
