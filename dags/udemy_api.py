@@ -120,13 +120,24 @@ def extract_udemy(sort_type, **kwargs):
 
                 # Description 추출
                 course_id = course["id"]
+                logging.info(course_id)
                 course_element = get_udemy(course_id)
                 description = course_element['units'][0]['items'][0]['objectives_summary']
+                if description:
+                    logging.info('Description is True')
+                else:
+                    logging.info('Description is False')
                 
-                price_url = f'https://www.udemy.com/api-2.0/pricing/?course_ids={course_id}&fields[pricing_result]=price_detail,discount_price'
+                price_url = f'https://www.udemy.com/api-2.0/pricing/?course_ids={course_id}&fields[pricing_result]=price_detail,price'
                 response = requests.get(price_url).json()
+                if response:
+                    logging.info('Price is True')
+                else:
+                    logging.info('Price is False')
                 current_price = int(response['courses'][course_id]['price']['amount'])
+                logging.info(current_price)
                 origin_price = int(response['courses'][course_id]['price_detail']['amount'])
+                logging.info(origin_price)
                 
                 teacher = course['visible_instructors'][0]['display_name']
                 scope = round(course['avg_rating'], 1)
