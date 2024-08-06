@@ -59,6 +59,7 @@ with DAG(
         CREATE TABLE IF NOT EXISTS Lecture_info (
             lecture_id VARCHAR(255) PRIMARY KEY,
             lecture_name VARCHAR(255),
+            origin_price INT,
             price INT,
             description VARCHAR(5000),
             what_do_i_learn VARCHAR(8191),

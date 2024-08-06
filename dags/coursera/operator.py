@@ -14,7 +14,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-from plugins.base62 import encoding_url
+import base64
 
 import concurrent.futures
 from bs4 import BeautifulSoup
@@ -55,7 +55,7 @@ class CourseraPreInfoToS3Operator(BaseOperator):
                 courses_info = self.crawling_course_url(keyword, sort_value)
                 for course in courses_info:
                     course_url = course["url"]
-                    course_hash = encoding_url(course_url)
+                    course_hash = base64.b64encode(course_url.encode("utf-8"))
                     data[course_hash] = course
 
         s3_key = self.push_prefix + f"/{self.today}/coursera.json"
@@ -159,7 +159,7 @@ class CourseraInfoToS3Operator(BaseOperator):
                 value["sort_by"],
                 value["keyword"],
             )
-            hashed_url = encoding_url(lecture_url)
+            hashed_url = base64.b64encode(lecture_url.encode("utf-8"))
             if self.push_prefix == "product":
                 parsed_data = self.parsing_course_info(lecture_url)
                 parsed_data["thumbnail_url"] = thumbnail_url
@@ -207,7 +207,7 @@ class CourseraInfoToS3Operator(BaseOperator):
         soup = BeautifulSoup(response.content, "html.parser")
         course_info = {}
 
-        course_info["lecture_id"] = encoding_url(url)
+        course_info["lecture_id"] = base64.b64encode(url.encode("utf-8"))
 
         title_element = soup.find(
             "h1", class_="cds-119 cds-Typography-base css-1xy8ceb cds-121"
@@ -216,6 +216,7 @@ class CourseraInfoToS3Operator(BaseOperator):
         course_info["lecture_name"] = title
 
         course_info["price"] = 0
+        course_info["origin_price"] = 0
 
         description_element = soup.find("div", class_="content-inner")
         description = description_element.text.strip() if description_element else None
@@ -308,7 +309,7 @@ class CourseraInfoToS3Operator(BaseOperator):
 
         data = {
             "lecture_url": url,
-            "lecture_id": encoding_url(url),
+            "lecture_id": base64.b64encode(url.encode("utf-8")),
             "reviews": reviews,
         }
         json_data = json.dumps(data, ensure_ascii=False, indent=4)
