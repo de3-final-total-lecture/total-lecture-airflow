@@ -128,15 +128,16 @@ def extract_udemy(sort_type, **kwargs):
                 else:
                     logging.info('Description is False')
                 
+                price_course_id = str(course_id)
                 price_url = f'https://www.udemy.com/api-2.0/pricing/?course_ids={course_id}&fields[pricing_result]=price_detail,price'
                 response = requests.get(price_url).json()
                 if response:
                     logging.info('Price is True')
                 else:
                     logging.info('Price is False')
-                current_price = int(response['courses'][course_id]['price']['amount'])
+                current_price = int(response['courses'][price_course_id]['price']['amount'])
                 logging.info(current_price)
-                origin_price = int(response['courses'][course_id]['price_detail']['amount'])
+                origin_price = int(response['courses'][price_course_id]['price_detail']['amount'])
                 logging.info(origin_price)
                 
                 teacher = course['visible_instructors'][0]['display_name']
