@@ -13,7 +13,6 @@ def _get_lecture_price(sort_word, **context):
     CLIENT_ID = Variable.get('Udemy_CLIENT_ID')
     CLIENT_SECRET = Variable.get('Udemy_CLIENT_SECRET')
     udemy = UdemyAffiliate(CLIENT_ID, CLIENT_SECRET)
-    detail = udemy.course_detail(course_id)
 
     mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")
 
@@ -21,12 +20,12 @@ def _get_lecture_price(sort_word, **context):
     results = mysql_hook.get_records(get_udemy_id_query)
     for result in results:
         course_id, lecture_id = result[0], result[1]
-        
+        detail = udemy.course_detail(course_id)
         price = int(detail['price_detail']['amount'])
 
         insert_lecture_price_history_query = (
             "INSERT INTO Lecture_price_history (lecture_id, price) VALUES (%s, %s)"
-        )   
+        )
         mysql_hook.run(
             insert_lecture_price_history_query, parameters=(lecture_id, price)
         )

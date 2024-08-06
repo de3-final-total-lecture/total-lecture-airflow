@@ -123,3 +123,14 @@ with DAG(
         );""",
         mysql_conn_id="mysql_conn",
     )
+    
+    create_udemy_table = MySqlOperator(
+        task_id="create_udemy_table",
+        sql="""
+        CREATE TABLE IF NOT EXISTS Udemy(
+            course_id INT,
+            lecture_id VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );""",
+        mysql_conn_id="mysql_conn"
+    )
