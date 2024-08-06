@@ -313,7 +313,7 @@ class InflearnPriceOperator(BaseOperator):
         get_existed_price_query = (
             f"SELECT price FROM Lecture_info WHERE lecture_id = {lecture_id}"
         )
-        existed_price = self.mysql_hook.get_first(get_existed_price_query)[0]
+        existed_price = int(self.mysql_hook.get_first(get_existed_price_query)[0])
         if existed_price != price:
             return True
         return False
