@@ -265,9 +265,9 @@ class UdemyPriceOperator(BaseOperator):
 
     def pre_execute(self, context):
         self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
-        self.udemy = UdemyAffiliate(self.client_id, self.client_secret)
-        self.client_id = Variable.get("Udemy_CLIENT_ID")
-        self.client_secret = Variable.get("Udemy_CLIENT_SECRET")
+        client_id = Variable.get("Udemy_CLIENT_ID")
+        client_secret = Variable.get("Udemy_CLIENT_SECRET")
+        self.udemy = UdemyAffiliate(client_id, client_secret)
 
     def execute(self, context):
         insert_data = []
