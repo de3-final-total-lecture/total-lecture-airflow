@@ -298,11 +298,9 @@ class InflearnPriceOperator(BaseOperator):
             except:
                 logging.info(f"{url}에서 가격 데이터 가져오기를 실패했습니다.")
             response_data = response_data["data"]
-            price = response_data["paymentInfo"]["payPrice"]
+            price = int(response_data["paymentInfo"]["payPrice"])
             if self.is_any_change_to_price:
-                update_price_query = (
-                    f"UPDATE Lecture_info SET {price} WHERE lecture_id = {lecture_id}"
-                )
+                update_price_query = f"UPDATE Lecture_info SET price = {price} WHERE lecture_id = '{lecture_id}'"
                 self.mysql_hook.run(update_price_query)
                 logging.info(
                     f"{lecture_id}의 강의 가격이 {price}로 업데이트 되었습니다."
