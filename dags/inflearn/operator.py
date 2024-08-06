@@ -8,7 +8,7 @@ import concurrent.futures
 import logging
 from datetime import timedelta
 import time
-from plugins.base62 import encoding_url
+import base64
 import requests
 import json
 import logging
@@ -40,7 +40,7 @@ class InflearnInfoToS3Operator(BaseOperator):
                 value["sort_type"],
                 value["lecture_url"],
             )
-            hashed_url = encoding_url(lecture_url)
+            hashed_url = base64.b64encode(lecture_url.encode("utf-8"))
             if self.push_prefix == "product":
                 parsed_data = self.parsing_lecture_details(
                     id, lecture_url, keyword, sort_type
@@ -115,7 +115,8 @@ class InflearnInfoToS3Operator(BaseOperator):
         main_category = data["category"]["main"]["title"]
         mid_category = data["category"]["sub"]["title"]
 
-        price = data["paymentInfo"]["payPrice"]
+        origin_price = int(data["paymentInfo"]["regularPrice"])
+        current_price = int(data["paymentInfo"]["payPrice"])
         review_count = data["review"]["count"]
         scope = data["review"]["averageStar"]
         teacher = data["instructors"][0]["name"]
@@ -144,9 +145,10 @@ class InflearnInfoToS3Operator(BaseOperator):
             "keyword": keyword,
             "platform_name": "Inflearn",
             "content": {
-                "lecture_id": encoding_url(lecture_url),
+                "lecture_id": base64.b64encode(lecture_url.encode("utf-8")),
                 "lecture_name": lecture_name,
-                "price": int(price),
+                "price": current_price,
+                "origin_price": origin_price,
                 "description": description,
                 "what_do_i_learn": what_do_i_learn,
                 "tag": tags,
@@ -169,7 +171,7 @@ class InflearnInfoToS3Operator(BaseOperator):
         url = f"https://www.inflearn.com/api/v2/review/course/{id}?id={id}&pageNumber=1&pageSize=30&sort=RECENT"
 
         data = {
-            "lecture_id": encoding_url(lecture_url),
+            "lecture_id": base64.b64encode(lecture_url.encode("utf-8")),
             "lecture_url": lecture_url,
             "reviews": [],
         }
@@ -262,7 +264,7 @@ class InflearnPreInfoToS3Operator(BaseOperator):
                 "sort_type": sort_type,
                 "lecture_url": lecture_url,
             }
-            lecture_id = encoding_url(lecture_url)
+            lecture_id = base64.b64encode(lecture_url.encode("utf-8"))
             insert_data.append((lecture_id, inflearn_id))
         return upload_data, insert_data
 
