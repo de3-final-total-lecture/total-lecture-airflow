@@ -62,13 +62,6 @@ def get_udemy(course_id):
     response = requests.get(url, params=params).json()
     return response
 
-def get_udemy_price(course_id):
-    # url = 'https://www.udemy.com/api-2.0/course-landing-components/'
-    url = 'https://www.udemy.com/api-2.0/pricing/'
-    params = {
-        
-    }
-
 def extract_udemy(sort_type, **kwargs):
     logger.info("Starting Udemy extraction...")
     CLIENT_ID = Variable.get('Udemy_CLIENT_ID')
