@@ -80,7 +80,7 @@ class CourseraPreInfoToS3Operator(BaseOperator):
 
     def crawling_course_url(self, keyword, sort_value):
         with webdriver.Remote(
-            "remote_chromedriver:4444/wd/hub", options=self.chrome_options
+            "10.1.1.77:4444/wd/hub", options=self.chrome_options
         ) as driver:
             driver.get(
                 f"https://www.coursera.org/search?query={keyword}&language=Korean&productTypeDescription=Courses&sortBy={sort_value}"
