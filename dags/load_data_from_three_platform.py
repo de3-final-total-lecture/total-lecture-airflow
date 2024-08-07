@@ -11,7 +11,10 @@ from dags.inflearn.operator import (
 )
 from dags.udemy.operator import UdemyInfoToS3Operator
 from dags.custom.s3_to_rds_operator import S3ToRDSOperator
-from dags.openai.operator import OpenAICategoryConnectionOperator
+from dags.openai.operator import (
+    OpenAICategoryConnectionOperator,
+    OpenAIReviewAnalysisOperator,
+)
 from datetime import timedelta
 from plugins.my_slack import on_failure_callback, on_success_callback
 
@@ -134,6 +137,21 @@ with DAG(
             )
         )
 
+    create_review_analysis_by_open_ai = OpenAIReviewAnalysisOperator(
+        task_id="create_review_analysis_by_open_ai",
+        bucket_name="team-jun-1-bucket",
+        pull_prefix="analytics/reviews",
+        push_table="Review_analysis",
+    )
+
     end = EmptyOperator(task_id="end")
 
-    start >> section_1 >> section_2 >> section_3 >> section_4 >> end
+    (
+        start
+        >> section_1
+        >> section_2
+        >> section_3
+        >> section_4
+        >> create_review_analysis_by_open_ai
+        >> end
+    )
