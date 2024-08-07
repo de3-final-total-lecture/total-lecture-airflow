@@ -16,14 +16,6 @@ def base62_encode(num):
     return "".join(reversed(encoded))
 
 
-def base62_decode(encoded):
-    """Base62 문자열을 숫자로 디코딩"""
-    num = 0
-    for char in encoded:
-        num = num * 62 + BASE62.index(char)
-    return num
-
-
 def encoding_url(url):
     """URL을 Base62로 인코딩"""
     # URL의 해시값을 계산
@@ -32,10 +24,3 @@ def encoding_url(url):
     num = int(url_hash, 16)
     # 10진수를 Base62로 인코딩
     return base62_encode(num)
-
-
-def decoding_url(encoded, original_url):
-    """Base62 문자열을 원래 URL로 디코딩 (원래 URL을 비교하여 검증)"""
-    num = base62_decode(encoded)
-    url_hash = hashlib.md5(original_url.encode()).hexdigest()
-    return num == int(url_hash, 16)

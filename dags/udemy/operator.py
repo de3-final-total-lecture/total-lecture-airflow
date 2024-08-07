@@ -6,7 +6,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 import concurrent.futures
 import logging
 from datetime import timedelta
-import base64
+from plugins.base62 import encoding_url
 import requests
 import json
 import logging
@@ -214,7 +214,7 @@ class UdemyInfoToS3Operator(BaseOperator):
             courses = response.json()
             review_cnt = courses["count"]
 
-            hash_url = base64.b64encode(search_url.encode("utf-8"))
+            hash_url = encoding_url(search_url)
 
             rating_5 = []
             rating_4 = []
