@@ -329,7 +329,6 @@ def _review_analysis_by_chatgpt(*args, **kwargs):
     # 테스트를 위한 today 변경
     today = korean_time.strftime("%m-%d")
     logging.info(f"logical kst: {korean_time}")
-    today = "08-06"
 
     mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")
     bucket_name = "team-jun-1-bucket"
