@@ -168,18 +168,24 @@ class OpenAICategoryConnectionOperator(BaseOperator):
         return OpenAI(api_key=api_key)
 
     def get_open_ai_assistant(self, openai_client):
-        if len(openai_client.beta.assistants.list().data) == 0:
-            logging.info("create new assistant")
+        category_assist = None
+        for llm_model in openai_client.beta.assistants.list().data:
+            if llm_model.name == "Category Assistant":
+                print("load assistant")
+                category_assist = llm_model
+                break
+
+        if category_assist is None:
+            print("create review assistant")
             category_assist = openai_client.beta.assistants.create(
+                # 기존 시스템 프롬프트
+                # instructions="You are an assistant tasked with mapping lecture data to one of several categories. You will receive a list of 25 categories, followed by multiple lecture data entries in the format 'Lecture 1: {information}, Lecture 2: {information}...' separated by commas. Your job is to assign a category to each lecture. The response should be formatted for easy parsing, with each lecture entry followed by 'ANS: category number'. If a lecture does not fit well into any category, respond with 'ANS: -1'. Additionally, due to potential cost concerns, limit your response for each lecture to three sentences, including the thought process behind your categorization",
                 # JSON 형식으로 답변을 위한 개선된 프롬프트
                 instructions="You are an assistant tasked with mapping lecture data to one of 25 categories. A list of these categories will be provided to you. Subsequently, you will receive lecture data in the format 'Lecture 1: {information}, Lecture 2: {information},' separated by commas. Your task is to assign a category to each lecture. Respond in a JSON format that is easy to parse. Each answer should have a problem number as the key, and the value should be another JSON object containing 'describe' for the reason and 'ans' for the correct category number. If the data provided is not suitable for categorization, set 'ans' to -1. Additionally, due to cost concerns, ensure that each 'describe' entry is no longer than three sentences.",
                 name="Category Assistant",
-                model="gpt-3.5-turbo",
+                # tools=[{"type": "file_search"}],
+                model="gpt-4o-mini",
             )
-
-        else:
-            logging.info("load assistant")
-            category_assist = openai_client.beta.assistants.list().data[0]
 
         return category_assist
 
