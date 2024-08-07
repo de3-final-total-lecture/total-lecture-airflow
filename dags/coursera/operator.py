@@ -14,7 +14,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
-import base64
+from plugins.base62 import encoding_url
 
 import concurrent.futures
 from bs4 import BeautifulSoup
@@ -55,7 +55,7 @@ class CourseraPreInfoToS3Operator(BaseOperator):
                 courses_info = self.crawling_course_url(keyword, sort_value)
                 for course in courses_info:
                     course_url = course["url"]
-                    course_hash = base64.b64encode(course_url.encode("utf-8"))
+                    course_hash = encoding_url(course_url)
                     data[course_hash] = course
 
         s3_key = self.push_prefix + f"/{self.today}/coursera.json"
@@ -159,7 +159,7 @@ class CourseraInfoToS3Operator(BaseOperator):
                 value["sort_by"],
                 value["keyword"],
             )
-            hashed_url = base64.b64encode(lecture_url.encode("utf-8"))
+            hashed_url = encoding_url(lecture_url)
             if self.push_prefix == "product":
                 parsed_data = self.parsing_course_info(lecture_url)
                 parsed_data["thumbnail_url"] = thumbnail_url
@@ -207,7 +207,7 @@ class CourseraInfoToS3Operator(BaseOperator):
         soup = BeautifulSoup(response.content, "html.parser")
         course_info = {}
 
-        course_info["lecture_id"] = base64.b64encode(url.encode("utf-8"))
+        course_info["lecture_id"] = encoding_url(url)
 
         title_element = soup.find(
             "h1", class_="cds-119 cds-Typography-base css-1xy8ceb cds-121"
@@ -309,7 +309,7 @@ class CourseraInfoToS3Operator(BaseOperator):
 
         data = {
             "lecture_url": url,
-            "lecture_id": base64.b64encode(url.encode("utf-8")),
+            "lecture_id": encoding_url(url),
             "reviews": reviews,
         }
         json_data = json.dumps(data, ensure_ascii=False, indent=4)
