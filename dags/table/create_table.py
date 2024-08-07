@@ -108,8 +108,11 @@ with DAG(
         sql="""
         CREATE TABLE IF NOT EXISTS Review_analysis (
             lecture_id VARCHAR(255),
-            lecture_name VARCHAR(255),
-            result VARCHAR(1023),
+            summary TEXT,
+            negative_count INT,
+            neutral_count INT,
+            positive_count INT,
+            avg_sentiment FLOAT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         );""",
