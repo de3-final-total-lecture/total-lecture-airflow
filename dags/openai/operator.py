@@ -188,6 +188,16 @@ class OpenAICategoryConnectionOperator(BaseOperator):
             )
 
         return category_assist
+    def llm_ans_preprocess(ans_str):
+        """
+            LLM이 잘못 내뱉는 경우에 대한 일반적인 처리 -> 그 외 처리는 어려움
+        """
+        if '`' in ans_str:
+            ans_str = ans_str.replace('`', '')
+        if not ans_str.startswith('{'):
+            start_idx = max(ans_str.find('{'), 0)
+            ans_str = ans_str[start_idx:]
+        return ans_str.strip()
 
     def get_message_from_openai(self, message_content, openai_client, category_assist):
         # 대화를 위한 스레드와 질문 메시지 생성
@@ -261,6 +271,7 @@ class OpenAICategoryConnectionOperator(BaseOperator):
                 ans = result[1].data[0]
                 for content in ans.content:
                     ans_str += content.text.value
+                ans_str = self.llm_ans_preprocess(ans_str)
                 total_answer_history.append([message_content, ans_str])
 
                 try:
@@ -295,7 +306,8 @@ class OpenAICategoryConnectionOperator(BaseOperator):
             # 2회 재시도에서 실패한 강의 목록
             if not process_flag:
                 for idx in range(batch_num):
-                    failed_lectures.append(uncategorized_datas[start_batch + idx])
+                    if start_batch + idx < len(uncategorized_datas):
+                        failed_lectures.append(uncategorized_datas[start_batch + idx])
             time.sleep(5)
 
         return total_answer_history, question_and_answer, failed_lectures
