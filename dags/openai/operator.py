@@ -47,22 +47,15 @@ class OpenAICategoryConnectionOperator(BaseOperator):
         )
 
         # ChatGPT를 통한 카테고리 매핑
-        total_answer_history, question_and_answer, failed_lectures = (
+        total_answer_history, category_mapping_result, failed_lectures = (
             self.categorize_by_openai(uncategorized_datas, self.open_ai_key)
         )
 
-        # LLM의 응답 파싱 json으로 파싱 및 db에 저장할 형식으로 처리 후 DB에 저장
-        category_processed, insert_datas = self.processing_question_and_answer(
-            question_and_answer
-        )
-        self.insert_to_mysql(insert_datas)
-
         # LLM 결과를 기록을 위해 s3에 저장
         self.save_llm_operation_result_to_s3(
-            category_processed,
+            category_mapping_result,
             failed_lectures,
-            total_answer_history,
-            question_and_answer,
+            total_answer_history
         )
 
     def get_all_json_files_from_s3(self, bucket_name, prefix=""):
@@ -227,18 +220,20 @@ class OpenAICategoryConnectionOperator(BaseOperator):
         category_assist = self.get_open_ai_assistant(open_ai_client)
 
         total_answer_history = []
-        question_and_answer = []
+        category_mapping_result = {}
         failed_lectures = []
 
         # 한번에 최대 4개의 강의씩 처리
         batch_num = 4
         for start_batch in range(0, len(uncategorized_datas), batch_num):
             cnt = 0
+            now_lectures = []
             lecture_info_str = ""
             for idx in range(batch_num):
                 if start_batch + idx >= len(uncategorized_datas):
                     break
                 lecture_copy = deepcopy(uncategorized_datas[start_batch + idx])
+                now_lectures.append(lecture_copy['lecture_id'])
                 lecture_copy.pop("lecture_id")
                 lecture_info_str += (
                     f"Lecture {idx + 1}: "
@@ -252,6 +247,8 @@ class OpenAICategoryConnectionOperator(BaseOperator):
             message_content += (
                 f"Here are the details of {cnt} lectures: " + lecture_info_str
             )
+            logging.info("-"*20)
+            logging.info(f"now processing lectures: {now_lectures}")
             logging.info(message_content)
 
             # 재시도 횟수 2회 - JSON 포맷으로 리턴 및,
@@ -288,16 +285,18 @@ class OpenAICategoryConnectionOperator(BaseOperator):
                                 raise Exception(
                                     f"{json_ans[ans_key]['ans']} is out of range(1, 25)!!"
                                 )
-                        question_and_answer.append(
-                            [
-                                message_content,
-                                json_ans,
-                                [
-                                    uncategorized_datas[start_batch + idx]["lecture_id"]
-                                    for idx in range(batch_num)
-                                ],
-                            ]
-                        )
+                        
+                        insert_datas = []
+                        for lecture_id, json_key in zip(now_lectures, list(json_ans.keys())):
+                            cate_ans = json_ans[json_key]['ans']
+                            if cate_ans != -1:
+                                insert_datas.append((lecture_id, cate_ans))
+                                category_mapping_result[lecture_id] = cate_ans
+                            else:
+                                insert_datas.append((lecture_id, 26))
+                                category_mapping_result[lecture_id] = 26
+
+                        self.insert_to_mysql(insert_datas)
                         process_flag = True
                         logging.info(f"q: {message_content}\na: {json_ans}")
                         break
@@ -311,25 +310,7 @@ class OpenAICategoryConnectionOperator(BaseOperator):
                         failed_lectures.append(uncategorized_datas[start_batch + idx])
             time.sleep(5)
 
-        return total_answer_history, question_and_answer, failed_lectures
-
-    def processing_question_and_answer(self, question_and_answer):
-        category_processed = {}
-        for elem in question_and_answer:
-            keys = list(elem[1].keys())
-            for idx, key in enumerate(keys):
-                lecture_id = elem[2][idx]
-                json_ob = elem[1][key]
-                category_processed[lecture_id] = [lecture_id, json_ob, json_ob["ans"]]
-
-        insert_datas = []
-        for lecture_id, data in category_processed.items():
-            if data[-1] != -1:
-                insert_datas.append((lecture_id, data[-1]))
-            else:
-                insert_datas.append((lecture_id, 26))
-
-        return category_processed, insert_datas
+        return total_answer_history, category_mapping_result, failed_lectures
 
     def insert_to_mysql(self, processed_datas):
         insert_query = f"INSERT IGNORE INTO {self.push_table} (lecture_id, category_id) VALUES (%s, %s)"
@@ -339,16 +320,14 @@ class OpenAICategoryConnectionOperator(BaseOperator):
 
     def save_llm_operation_result_to_s3(
         self,
-        category_processed,
+        category_mapping_result,
         failed_lectures,
         total_answer_history,
-        question_and_answer,
     ):
         llm_operation_log = {}
-        llm_operation_log["category_processed"] = category_processed
+        llm_operation_log["category_mapping_result"] = category_mapping_result
         llm_operation_log["failed_lectures"] = failed_lectures
         llm_operation_log["total_answer_history"] = total_answer_history
-        llm_operation_log["successed_answer"] = question_and_answer
         upload = {
             "string_data": json.dumps(llm_operation_log),
             "key": f"llm_operation_history/{self.today}_llm_operation_history.json",
