@@ -167,17 +167,6 @@ def get_message_from_openai(message_content, openai_client, category_assist):
         return [run.status, None]
 
 
-def llm_ans_preprocess(ans_str):
-    """
-        LLM이 잘못 내뱉는 경우에 대한 일반적인 처리 -> 그 외 처리는 어려움
-    """
-    if '`' in ans_str:
-        ans_str = ans_str.replace('`', '')
-    if not ans_str.startswith('{'):
-        start_idx = max(ans_str.find('{'), 0)
-        ans_str = ans_str[start_idx:]
-    return ans_str.strip()
-
 def categorize_by_openai(uncategorized_datas, open_ai_key):
     # API 요청을 위한 클라이언트 및 LLM 모델 (Assistant)
     open_ai_client = get_openai_client(open_ai_key)
@@ -229,8 +218,6 @@ def categorize_by_openai(uncategorized_datas, open_ai_key):
             ans = result[1].data[0]
             for content in ans.content:
                 ans_str += content.text.value
-            
-            ans_str = llm_ans_preprocess(ans_str)
             total_answer_history.append([message_content, ans_str])
 
             try:
@@ -260,8 +247,7 @@ def categorize_by_openai(uncategorized_datas, open_ai_key):
         # 2회 재시도에서 실패한 강의 목록
         if not process_flag:
             for idx in range(batch_num):
-                if start_batch + idx < len(uncategorized_datas):
-                    failed_lectures.append(uncategorized_datas[start_batch + idx])
+                failed_lectures.append(uncategorized_datas[start_batch + idx])
         time.sleep(5)
 
     return total_answer_history, question_and_answer, failed_lectures
@@ -341,7 +327,7 @@ def _categorize_lectures_by_chatgpt(*args, **kwargs):
     # 테스트를 위한 today 변경
     today = korean_time.strftime("%m-%d")
     logging.info(f"logical kst: {korean_time}")
-    # today = "07-29"
+    today = "07-29"
 
     mysql_hook = MySqlHook(mysql_conn_id="mysql_conn")
     bucket_name = "team-jun-1-bucket"
