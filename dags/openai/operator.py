@@ -188,7 +188,8 @@ class OpenAICategoryConnectionOperator(BaseOperator):
             )
 
         return category_assist
-    def llm_ans_preprocess(ans_str):
+    
+    def llm_ans_preprocess(self, ans_str):
         """
             LLM이 잘못 내뱉는 경우에 대한 일반적인 처리 -> 그 외 처리는 어려움
         """
