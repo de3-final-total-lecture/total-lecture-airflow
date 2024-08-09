@@ -290,9 +290,9 @@ class CourseraInfoToS3Operator(BaseOperator):
         return course_info
 
     def parsing_course_review(self, url):
-        url = f"{url}/reviews?page=1&sort=recent"
+        review_url = f"{url}/reviews?page=1&sort=recent"
         reviews = []
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(review_url, headers=self.headers)
         soup = BeautifulSoup(response.content, "html.parser")
         review_elements = soup.find_all("div", class_="css-15ee6ym")
 
