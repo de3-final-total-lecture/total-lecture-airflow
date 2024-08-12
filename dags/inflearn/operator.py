@@ -9,6 +9,7 @@ import logging
 from datetime import timedelta
 import time
 from plugins.base62 import encoding_url
+from plugins.send_email import send_email
 import requests
 import json
 import logging
@@ -42,9 +43,7 @@ class InflearnInfoToS3Operator(BaseOperator):
             )
             hashed_url = encoding_url(lecture_url)
             if self.push_prefix == "product":
-                parsed_data = self.parsing_lecture_details(
-                    id, lecture_url, keyword, sort_type
-                )
+                parsed_data = self.parsing_lecture_details(id, lecture_url, keyword)
                 s3_key = f"{self.push_prefix}/{self.today}/{sort_type}/inflearn_{hashed_url}.json"
             else:
                 parsed_data = self.parsing_lecture_reviews(id, lecture_url)
@@ -94,7 +93,7 @@ class InflearnInfoToS3Operator(BaseOperator):
         else:
             return "0분"
 
-    def parsing_lecture_details(self, id, lecture_url, keyword, sort_type):
+    def parsing_lecture_details(self, id, lecture_url, keyword):
         url_v1 = (
             f"https://www.inflearn.com/course/client/api/v1/course/{id}/online/info"
         )
@@ -108,7 +107,7 @@ class InflearnInfoToS3Operator(BaseOperator):
 
         data = json_data["data"]
         lecture_thumbnail = data["thumbnailUrl"]
-        # is_new = data["isNew"]
+
         lecture_name = data["title"]
         lecture_time = data["unitSummary"]["runtime"]
 
@@ -278,7 +277,7 @@ class InflearnPriceOperator(BaseOperator):
         self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
 
     def execute(self, context):
-        insert_data, update_data = [], []
+        insert_data = []
         results = self.get_inflearn_id()
         insert_data = self.get_lecture_price(results, insert_data)
         self.load_price_history(insert_data)
@@ -307,6 +306,7 @@ class InflearnPriceOperator(BaseOperator):
                 logging.info(
                     f"{lecture_id}의 강의 가격이 {price}로 업데이트 되었습니다."
                 )
+                self.send_email_to_user(lecture_id)
             insert_data.append((lecture_id, price))
             time.sleep(0.5)
         return insert_data
@@ -315,16 +315,33 @@ class InflearnPriceOperator(BaseOperator):
         get_existed_price_query = (
             f"SELECT price FROM Lecture_info WHERE lecture_id = '{lecture_id}'"
         )
-        existed_price = int(self.mysql_hook.get_first(get_existed_price_query)[0])
-        if existed_price != price:
+        result = self.mysql_hook.get_first(get_existed_price_query)
+        if result and int(result[0]) != price:
             return True
-        return False
+        else:
+            return False
 
     def load_price_history(self, insert_data):
         insert_lecture_price_query = (
             "INSERT INTO Lecture_price_history (lecture_id, price) VALUES (%s, %s)"
         )
         self.mysql_hook.bulk_insert(insert_lecture_price_query, parameters=insert_data)
+
+    def send_email_to_user(self, lecture_id):
+        get_lecture_name_user_id_query = f"SELECT lecture_name, user_id FROM wish_list WHERE lecture_id = '{lecture_id}'"
+        results = self.mysql_hook.run(get_lecture_name_user_id_query)
+        for result in results:
+            lecture_name, user_id = result
+            get_user_email_query = (
+                f"SELECT user_email FROM lecture_users WHERE user_id = {user_id}"
+            )
+            user_email = self.mysql_hook.run(get_user_email_query)
+            send_email(
+                "linden97xx@gmail.com",
+                user_email,
+                "OLLY에서 알려드립니다.",
+                f"{lecture_name}의 가격이 변동되었습니다. 사이트에서 확인 부탁드립니다.",
+            )
 
 
 class InflearnCategoryConnectionOperator(BaseOperator):
