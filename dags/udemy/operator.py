@@ -7,7 +7,7 @@ import concurrent.futures
 import logging
 from datetime import timedelta
 from plugins.base62 import encoding_url
-from plugins.send_email import send_email
+from plugins.my_email import send_email
 import requests
 import json
 import logging
