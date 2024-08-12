@@ -43,9 +43,7 @@ class InflearnInfoToS3Operator(BaseOperator):
             )
             hashed_url = encoding_url(lecture_url)
             if self.push_prefix == "product":
-                parsed_data = self.parsing_lecture_details(
-                    id, lecture_url, keyword, sort_type
-                )
+                parsed_data = self.parsing_lecture_details(id, lecture_url, keyword)
                 s3_key = f"{self.push_prefix}/{self.today}/{sort_type}/inflearn_{hashed_url}.json"
             else:
                 parsed_data = self.parsing_lecture_reviews(id, lecture_url)
@@ -95,7 +93,7 @@ class InflearnInfoToS3Operator(BaseOperator):
         else:
             return "0분"
 
-    def parsing_lecture_details(self, id, lecture_url, keyword, sort_type):
+    def parsing_lecture_details(self, id, lecture_url, keyword):
         url_v1 = (
             f"https://www.inflearn.com/course/client/api/v1/course/{id}/online/info"
         )
@@ -109,7 +107,7 @@ class InflearnInfoToS3Operator(BaseOperator):
 
         data = json_data["data"]
         lecture_thumbnail = data["thumbnailUrl"]
-        # is_new = data["isNew"]
+
         lecture_name = data["title"]
         lecture_time = data["unitSummary"]["runtime"]
 
@@ -279,7 +277,7 @@ class InflearnPriceOperator(BaseOperator):
         self.mysql_hook = CustomMySqlHook(mysql_conn_id="mysql_conn")
 
     def execute(self, context):
-        insert_data, update_data = [], []
+        insert_data = []
         results = self.get_inflearn_id()
         insert_data = self.get_lecture_price(results, insert_data)
         self.load_price_history(insert_data)
