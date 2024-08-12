@@ -328,20 +328,20 @@ class InflearnPriceOperator(BaseOperator):
         self.mysql_hook.bulk_insert(insert_lecture_price_query, parameters=insert_data)
 
     def send_email_to_user(self, lecture_id):
-        get_lecture_name_user_id_query = f"SELECT lecture_name, user_id FROM wish_list WHERE lecture_id = '{lecture_id}'"
+        get_lecture_name_user_id_query = f"SELECT lecture_name, user_id, is_alarm FROM wish_list WHERE lecture_id = '{lecture_id}'"
         results = self.mysql_hook.run(get_lecture_name_user_id_query)
-        for result in results:
-            lecture_name, user_id = result
-            get_user_email_query = (
-                f"SELECT user_email FROM lecture_users WHERE user_id = {user_id}"
-            )
-            user_email = self.mysql_hook.run(get_user_email_query)
-            send_email(
-                "linden97xx@gmail.com",
-                user_email,
-                "OLLY에서 알려드립니다.",
-                f"{lecture_name}의 가격이 변동되었습니다. 사이트에서 확인 부탁드립니다.",
-            )
+        if results:
+            for result in results:
+                lecture_name, user_id, is_alarm = result
+                if is_alarm:
+                    get_user_email_query = f"SELECT user_email FROM lecture_users WHERE user_id = {user_id}"
+                    user_email = self.mysql_hook.run(get_user_email_query)
+                    send_email(
+                        "linden97xx@gmail.com",
+                        user_email,
+                        "OLLY에서 알려드립니다.",
+                        f"{lecture_name}의 가격이 변동되었습니다. 사이트에서 확인 부탁드립니다.",
+                    )
 
 
 class InflearnCategoryConnectionOperator(BaseOperator):
