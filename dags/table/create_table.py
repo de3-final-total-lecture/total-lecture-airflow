@@ -75,6 +75,7 @@ with DAG(
             is_recommend BOOLEAN,
             platform_name VARCHAR(32),
             like_count INT DEFAULT 0,
+            keyword VARCHAR(64),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         );""",
