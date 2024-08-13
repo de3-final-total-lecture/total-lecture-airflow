@@ -152,9 +152,7 @@ with DAG(
             lecture_name VARCHAR(255),
             is_alarm BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY unique_lecture_user (lecture_id, user_id),
-            FOREIGN KEY (lecture_id) REFERENCES LectureInfo(id) ON DELETE CASCADE,
-            FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+            UNIQUE KEY unique_lecture_user (lecture_id, user_id)
         );
         """,
         mysql_conn_id="mysql_conn",
