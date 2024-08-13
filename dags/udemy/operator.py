@@ -300,7 +300,7 @@ class UdemyPriceOperator(BaseOperator):
             try:
                 detail = self.udemy.course_detail(course_id)
                 price = int(detail["price_detail"]["amount"])
-                if self.is_any_change_to_price:
+                if self.is_any_change_to_price(lecture_id, price):
                     update_price_query = f"UPDATE Lecture_info SET price = {price} WHERE lecture_id = '{lecture_id}'"
                     self.mysql_hook.run(update_price_query)
                     logging.info(
