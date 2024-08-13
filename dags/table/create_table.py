@@ -141,3 +141,21 @@ with DAG(
         );""",
         mysql_conn_id="mysql_conn",
     )
+
+    create_wishlist_table = MySqlOperator(
+        task_id="create_wishlist_table",
+        sql="""
+        CREATE TABLE IF NOT EXISTS wish_list (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            lecture_id INT NOT NULL,
+            user_id INT NOT NULL,
+            lecture_name VARCHAR(255),
+            is_alarm BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_lecture_user (lecture_id, user_id),
+            FOREIGN KEY (lecture_id) REFERENCES LectureInfo(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+        );
+        """,
+        mysql_conn_id="mysql_conn",
+    )
