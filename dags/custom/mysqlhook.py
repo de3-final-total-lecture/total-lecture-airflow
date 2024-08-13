@@ -38,20 +38,17 @@ class CustomMySqlHook(MySqlHook):
 
         # created_at과 updated_at을 제외한 컬럼 목록 생성
         regular_columns = [
-            col for col in columns if col not in ("created_at", "updated_at")
+            col
+            for col in columns
+            if col not in ("like_count", "created_at", "updated_at")
         ]
-
-        # BOOLEAN 타입 컬럼 변환 추가
-        boolean_columns = ["is_new", "is_recommend"]  # BOOLEAN 컬럼 이름 추가
-
         load_data_sql = f"""
             LOAD DATA LOCAL INFILE '{tmp_file}'
             INTO TABLE {table}
             FIELDS TERMINATED BY ';'
             IGNORE 1 LINES
-            ({', '.join(regular_columns)}, @created_at, @updated_at, {', '.join([f"@{col}" for col in boolean_columns])})
+            ({', '.join(regular_columns)}, like_count, @created_at, @updated_at)
             SET 
-                {', '.join([f"{col} = IF(@{col} = 'True', 1, 0)" for col in boolean_columns])},
                 created_at = IFNULL(@created_at, NOW()),
                 updated_at = IFNULL(@updated_at, NOW())
         """
