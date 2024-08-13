@@ -52,20 +52,3 @@ class CustomMySqlHook(MySqlHook):
         """
         cur.execute(load_data_sql)
         conn.commit()
-
-
-# def bulk_load(self, table: str, tmp_file: str) -> None:
-#         conn = self.get_conn()
-#         cur = conn.cursor()
-#         cur.execute(
-#             """
-#             LOAD DATA LOCAL INFILE '{tmp_file}'
-#             IGNORE
-#             INTO TABLE {table}
-#             FIELDS TERMINATED BY ';'
-#             IGNORE 1 LINES;
-#             """.format(
-#                 tmp_file=tmp_file, table=table
-#             )
-#         )
-#         conn.commit()
