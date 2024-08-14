@@ -52,6 +52,7 @@ class TestEmailOperator(BaseOperator):
                 if is_alarm:
                     get_user_email_query = f"SELECT user_email FROM lecture_users WHERE user_id = {user_id}"
                     user_email = self.mysql_hook.run(get_user_email_query)[0]
+                    logging.info(user_email)
                     send_email(
                         "linden97xx@gmail.com",
                         user_email,
