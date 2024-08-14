@@ -331,13 +331,13 @@ class UdemyPriceOperator(BaseOperator):
 
     def send_email_to_user(self, lecture_id):
         get_lecture_name_user_id_query = f"SELECT lecture_name, user_id, is_alarm FROM wish_list WHERE lecture_id = '{lecture_id}'"
-        results = self.mysql_hook.run(get_lecture_name_user_id_query)
+        results = self.mysql_hook.get_records(get_lecture_name_user_id_query)
         if results:
             for result in results:
                 lecture_name, user_id, is_alarm = result
                 if is_alarm:
                     get_user_email_query = f"SELECT user_email FROM lecture_users WHERE user_id = {user_id}"
-                    user_email = self.mysql_hook.run(get_user_email_query)
+                    user_email = self.mysql_hook.get_first(get_user_email_query)[0]
                     send_email(
                         "linden97xx@gmail.com",
                         user_email,

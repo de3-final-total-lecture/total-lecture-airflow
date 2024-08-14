@@ -147,7 +147,7 @@ with DAG(
         sql="""
         CREATE TABLE IF NOT EXISTS wish_list (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            lecture_id INT NOT NULL,
+            lecture_id VARCHAR(255) NOT NULL,
             user_id INT NOT NULL,
             lecture_name VARCHAR(255),
             is_alarm BOOLEAN DEFAULT FALSE,
