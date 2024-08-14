@@ -40,15 +40,18 @@ class CustomMySqlHook(MySqlHook):
         regular_columns = [
             col
             for col in columns
-            if col not in ("like_count", "created_at", "updated_at")
+            if col
+            not in ("like_count", "created_at", "updated_at", "is_new", "is_recommend")
         ]
         load_data_sql = f"""
             LOAD DATA LOCAL INFILE '{tmp_file}'
             INTO TABLE {table}
             FIELDS TERMINATED BY ';'
             IGNORE 1 LINES
-            ({', '.join(regular_columns)}, like_count, @created_at, @updated_at)
+            ({', '.join(regular_columns)}, @is_new, @is_recommend, like_count, @created_at, @updated_at)
             SET 
+                is_new = IF(@is_new = 'True', 1, 0),
+                is_recommend = IF(@is_recommend = 'True', 1, 0),
                 created_at = IFNULL(@created_at, NOW()),
                 updated_at = IFNULL(@updated_at, NOW())
         """
