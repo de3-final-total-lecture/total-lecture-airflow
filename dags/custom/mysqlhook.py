@@ -36,7 +36,6 @@ class CustomMySqlHook(MySqlHook):
         cur.execute(f"DESCRIBE {table}")
         columns = [column[0] for column in cur.fetchall()]
 
-        # created_at과 updated_at을 제외한 컬럼 목록 생성
         regular_columns = [
             col
             for col in columns
@@ -50,8 +49,8 @@ class CustomMySqlHook(MySqlHook):
             IGNORE 1 LINES
             ({', '.join(regular_columns)}, @is_new, @is_recommend, like_count, @created_at, @updated_at)
             SET 
-                is_new = IF(@is_new = 'True', 1, 0),
-                is_recommend = IF(@is_recommend = 'True', 1, 0),
+                is_new = IF(@is_new = 'TRUE', 1, 0),
+                is_recommend = IF(@is_recommend = 'TRUE', 1, 0),
                 created_at = IFNULL(@created_at, NOW()),
                 updated_at = IFNULL(@updated_at, NOW())
         """
