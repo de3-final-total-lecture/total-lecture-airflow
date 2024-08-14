@@ -32,27 +32,28 @@ class CustomMySqlHook(MySqlHook):
     def bulk_load(self, table: str, tmp_file: str) -> None:
         conn = self.get_conn()
         cur = conn.cursor()
+
         # 테이블의 컬럼 정보 가져오기
         cur.execute(f"DESCRIBE {table}")
         columns = [column[0] for column in cur.fetchall()]
 
-        regular_columns = [
-            col
-            for col in columns
-            if col
-            not in ("like_count", "created_at", "updated_at", "is_new", "is_recommend")
-        ]
+        # CSV 파일의 컬럼 순서에 맞게 매핑
         load_data_sql = f"""
             LOAD DATA LOCAL INFILE '{tmp_file}'
             INTO TABLE {table}
             FIELDS TERMINATED BY ';'
             IGNORE 1 LINES
-            ({', '.join(regular_columns)}, @is_new, @is_recommend, like_count, @created_at, @updated_at)
+            (lecture_id, lecture_url, lecture_name, origin_price, price, description, what_do_i_learn, tag, level, teacher, scope, review_count, lecture_time, thumbnail_url, @is_new, @is_recommend, platform_name, like_count, keyword, @created_at, @updated_at)
             SET 
-                is_new = IF(@is_new = 'TRUE', 1, 0),
-                is_recommend = IF(@is_recommend = 'TRUE', 1, 0),
-                created_at = IFNULL(@created_at, NOW()),
-                updated_at = IFNULL(@updated_at, NOW())
+                description = IFNULL(description, 'default_description'),
+                what_do_i_learn = IFNULL(what_do_i_learn, 'default_learn'),
+                tag = IFNULL(tag, 'default_tag'),
+                level = IFNULL(level, 'default_level'),
+                is_new = IF(LOWER(TRIM(@is_new)) = 'TRUE', 1, 0),
+                is_recommend = IF(LOWER(TRIM(@is_recommend)) = 'TRUE', 1, 0),
+                like_count = IFNULL(like_count, 0),
+                created_at = IFNULL(NULLIF(@created_at, ''), NOW()),
+                updated_at = IFNULL(NULLIF(@updated_at, ''), NOW())
         """
         cur.execute(load_data_sql)
         conn.commit()
