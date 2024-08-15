@@ -39,8 +39,8 @@ class CustomMySqlHook(MySqlHook):
 
         # CSV 파일의 컬럼 순서에 맞게 매핑
         load_data_sql = f"""
-            LOAD DATA INFILE 'your_file_path.csv'
-            INTO TABLE Lecture_info
+            LOAD DATA LOCAL INFILE '{tmp_file}'
+            INTO TABLE {table}
             FIELDS TERMINATED BY ';' 
             IGNORE 1 ROWS
             (
