@@ -51,7 +51,6 @@ class CustomMySqlHook(MySqlHook):
                 level = IFNULL(level, 'default_level'),
                 is_new = IF(LOWER(TRIM(@is_new)) = 'TRUE', 1, 0),
                 is_recommend = IF(LOWER(TRIM(@is_recommend)) = 'TRUE', 1, 0),
-                keyword = FROM_BASE64(@keyword),
                 like_count = IFNULL(like_count, 0),
                 created_at = IFNULL(NULLIF(@created_at, ''), NOW()),
                 updated_at = IFNULL(NULLIF(@updated_at, ''), NOW())
