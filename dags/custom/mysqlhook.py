@@ -43,7 +43,7 @@ class CustomMySqlHook(MySqlHook):
             INTO TABLE {table}
             FIELDS TERMINATED BY ';'
             IGNORE 1 LINES
-            (lecture_id, lecture_url, lecture_name, origin_price, price, description, what_do_i_learn, tag, level, teacher, scope, review_count, lecture_time, thumbnail_url, @is_new, @is_recommend, platform_name, like_count, @keywor, @created_at, @updated_at)
+            (lecture_id, lecture_url, lecture_name, origin_price, price, description, what_do_i_learn, tag, level, teacher, scope, review_count, lecture_time, thumbnail_url, @is_new, @is_recommend, platform_name, like_count, @keyword, @created_at, @updated_at)
             SET 
                 description = IFNULL(description, 'default_description'),
                 what_do_i_learn = IFNULL(what_do_i_learn, 'default_learn'),
