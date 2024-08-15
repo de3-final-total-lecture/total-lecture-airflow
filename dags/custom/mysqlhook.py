@@ -39,21 +39,43 @@ class CustomMySqlHook(MySqlHook):
 
         # CSV 파일의 컬럼 순서에 맞게 매핑
         load_data_sql = f"""
-            LOAD DATA LOCAL INFILE '{tmp_file}'
-            INTO TABLE {table}
-            FIELDS TERMINATED BY ';'
-            IGNORE 1 LINES
-            (lecture_id, lecture_url, lecture_name, origin_price, price, description, what_do_i_learn, tag, level, teacher, scope, review_count, lecture_time, thumbnail_url, @is_new, @is_recommend, platform_name, @keyword)
-            SET 
-                description = IFNULL(description, 'default_description'),
-                what_do_i_learn = IFNULL(what_do_i_learn, 'default_learn'),
-                tag = IFNULL(tag, 'default_tag'),
-                level = IFNULL(level, 'default_level'),
-                is_new = IF(LOWER(TRIM(@is_new)) = 'TRUE', 1, 0),
-                is_recommend = IF(LOWER(TRIM(@is_recommend)) = 'TRUE', 1, 0),
+            LOAD DATA INFILE 'your_file_path.csv'
+            INTO TABLE Lecture_info
+            FIELDS TERMINATED BY ';' 
+            IGNORE 1 ROWS
+            (
+                lecture_id,
+                lecture_url,
+                lecture_name,
+                origin_price,
+                price,
+                @description,
+                @what_do_i_learn,
+                @tag,
+                @level,
+                teacher,
+                scope,
+                review_count,
+                lecture_time,
+                thumbnail_url,
+                @is_new,
+                @is_recommend,
+                platform_name,
+                @keyword,
+                like_count,
+                @created_at,
+                @updated_at
+            )
+            SET
+                description = IFNULL(@description, 'default_description'),
+                what_do_i_learn = IFNULL(@what_do_i_learn, 'default_learn'),
+                tag = IFNULL(@tag, 'default_tag'),
+                level = IFNULL(@level, 'default_level'),
+                is_new = IF(LOWER(TRIM(@is_new)) = 'true', 1, 0),
+                is_recommend = IF(LOWER(TRIM(@is_recommend)) = 'true', 1, 0),
                 keyword = FROM_BASE64(@keyword),
                 created_at = IFNULL(NULLIF(@created_at, ''), NOW()),
-                updated_at = IFNULL(NULLIF(@updated_at, ''), NOW())
+                updated_at = IFNULL(NULLIF(@updated_at, ''), NOW());
         """
         cur.execute(load_data_sql)
         conn.commit()
